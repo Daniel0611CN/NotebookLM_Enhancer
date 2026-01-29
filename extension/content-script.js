@@ -206,6 +206,37 @@
   const bodyObserver = new MutationObserver(scheduleEnsureMounted);
   bodyObserver.observe(document.body, { childList: true, subtree: true });
 
+  function openNativeNotebookByTitle(title) {
+    const listEl = state.listEl;
+    if (!listEl) return false;
+
+    const titleEls = listEl.querySelectorAll('.artifact-title');
+    const match = Array.from(titleEls).find((el) => (el.textContent ?? '').trim() === title);
+    if (!match) return false;
+
+    const button = match.closest('button.artifact-button-content') ?? match.closest('button');
+    if (!button) return false;
+
+    button.click();
+    return true;
+  }
+
+  window.addEventListener('message', (event) => {
+    // Only accept messages from our iframe.
+    if (!state.frameEl?.contentWindow) return;
+    if (event.source !== state.frameEl.contentWindow) return;
+    if (!event.data || typeof event.data !== 'object') return;
+
+    const data = /** @type {{ type?: unknown; payload?: unknown }} */ (event.data);
+    if (data.type !== 'NLE_OPEN_NOTEBOOK') return;
+
+    const payload = /** @type {{ title?: unknown }} */ (data.payload ?? {});
+    if (typeof payload.title !== 'string') return;
+
+    const ok = openNativeNotebookByTitle(payload.title);
+    if (!ok) log('Notebook not found for click:', payload.title);
+  });
+
   // Also hook navigation events (NotebookLM is a SPA).
   window.addEventListener('popstate', scheduleEnsureMounted);
   try {

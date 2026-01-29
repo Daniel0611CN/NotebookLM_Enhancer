@@ -10,12 +10,12 @@
     } @else {
       <div class="divide-y divide-slate-200">
         @for (nb of notebooks; track nb.title) {
-          <div class="p-2">
+          <button type="button" class="block w-full p-2 text-left hover:bg-slate-50" (click)="openNotebook(nb)">
             <div class="text-xs font-medium leading-4">{{ nb.title }}</div>
             @if (nb.details) {
               <div class="mt-0.5 text-[11px] text-slate-500">{{ nb.details }}</div>
             }
-          </div>
+          </button>
         }
       </div>
     }

@@ -46,6 +46,19 @@ export class AppComponent implements OnDestroy {
     window.addEventListener('message', this.onMessage);
   }
 
+  openNotebook(nb: NotebookItem): void {
+    // Send a click intent to the content script (page context) via the iframe parent.
+    window.parent.postMessage(
+      {
+        type: 'NLE_OPEN_NOTEBOOK',
+        payload: {
+          title: nb.title,
+        },
+      },
+      '*'
+    );
+  }
+
   ngOnDestroy(): void {
     window.removeEventListener('message', this.onMessage);
   }
