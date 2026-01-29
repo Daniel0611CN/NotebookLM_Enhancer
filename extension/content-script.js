@@ -7,23 +7,47 @@
   const EXTENSION_HOST_ID = 'notebooklm-enhancer-root';
   const IFRAME_TITLE = 'NotebookLM Enhancer';
   const MESSAGE_TYPE_NOTEBOOKS = 'NLE_NOTEBOOKS_SYNC';
-  const SIDEBAR_QUERY_CANDIDATES = ['.artifact-library-container', 'artifact-library', '[class*="artifact-library"]'];
+  const ARTIFACT_LIST_SELECTOR = '.artifact-library-container';
+  const STUDIO_PANEL_SELECTOR = 'section.studio-panel';
+  const PANEL_ROOT_SELECTOR = '.panel-content-scrollable';
+
+  /** @type {{ panelRootEl: Element | null; hostEl: HTMLElement | null; frameEl: HTMLIFrameElement | null; listEl: Element | null; listObserver: MutationObserver | null; }} */
+  const state = {
+    panelRootEl: null,
+    hostEl: null,
+    frameEl: null,
+    listEl: null,
+    listObserver: null,
+  };
+
+  let ensureScheduled = false;
 
   function log(...args) {
     // Keep logs low-noise; useful during selector hardening.
     console.debug('[NotebookLM Enhancer]', ...args);
   }
 
-  function findSidebarContainer() {
-    for (const selector of SIDEBAR_QUERY_CANDIDATES) {
-      const el = document.querySelector(selector);
-      if (el) return el;
-    }
-    return null;
+  function findStudioPanel() {
+    const section = document.querySelector(STUDIO_PANEL_SELECTOR);
+    if (section) return section;
+
+    // Fallback: tolerate changes (e.g. element type) as long as class survives.
+    return document.querySelector('.studio-panel');
   }
 
-  function ensureHost(containerEl) {
-    const existing = containerEl.querySelector(`#${EXTENSION_HOST_ID}`);
+  function findPanelRoot() {
+    const studioPanel = findStudioPanel();
+    if (studioPanel) {
+      const panelRoot = studioPanel.querySelector(PANEL_ROOT_SELECTOR);
+      if (panelRoot) return panelRoot;
+    }
+
+    // Fallback: best-effort search.
+    return document.querySelector(PANEL_ROOT_SELECTOR);
+  }
+
+  function ensureHost(panelRootEl, insertBeforeEl) {
+    const existing = panelRootEl.querySelector(`#${EXTENSION_HOST_ID}`);
     if (existing) return existing;
 
     const host = document.createElement('div');
@@ -31,15 +55,20 @@
     host.style.display = 'block';
     host.style.width = '100%';
 
-    // Insert at the top of the container so it feels native.
-    containerEl.prepend(host);
+    // Insert before the native artifact list so it feels native.
+    if (insertBeforeEl?.parentNode === panelRootEl) {
+      panelRootEl.insertBefore(host, insertBeforeEl);
+    } else {
+      panelRootEl.prepend(host);
+    }
     return host;
   }
 
   function mountUi(hostEl) {
     const shadow = hostEl.shadowRoot ?? hostEl.attachShadow({ mode: 'open' });
 
-    if (shadow.getElementById('nle-frame')) return;
+    const existingFrame = shadow.getElementById('nle-frame');
+    if (existingFrame) return /** @type {HTMLIFrameElement} */ (existingFrame);
 
     const style = document.createElement('style');
     style.textContent = `
@@ -69,8 +98,8 @@
     return frame;
   }
 
-  function extractNotebooksFromSidebar(containerEl) {
-    const titleEls = containerEl.querySelectorAll('.artifact-title');
+  function extractNotebooksFromSidebar(artifactListEl) {
+    const titleEls = artifactListEl.querySelectorAll('.artifact-title');
 
     return Array.from(titleEls)
       .map((el) => {
@@ -102,61 +131,100 @@
     );
   }
 
-  function startSidebarObserver(containerEl, frameEl) {
-    let scheduled = false;
+  function detachListObserver() {
+    state.listObserver?.disconnect?.();
+    state.listObserver = null;
+    state.listEl = null;
+  }
 
+  function attachListObserver(listEl, frameEl) {
+    if (state.listEl === listEl && state.listObserver) return;
+
+    detachListObserver();
+    state.listEl = listEl;
+
+    let scheduled = false;
     const emit = () => {
       scheduled = false;
-      const notebooks = extractNotebooksFromSidebar(containerEl);
-      postNotebooks(frameEl, notebooks);
+      if (!state.listEl || !state.frameEl?.contentWindow) return;
+      const notebooks = extractNotebooksFromSidebar(state.listEl);
+      postNotebooks(state.frameEl, notebooks);
     };
-
     const scheduleEmit = () => {
       if (scheduled) return;
       scheduled = true;
       queueMicrotask(emit);
     };
 
-    frameEl?.addEventListener('load', emit);
+    // Emit on frame load + immediately.
+    frameEl.addEventListener('load', emit);
     emit();
 
-    const observer = new MutationObserver(scheduleEmit);
-    observer.observe(containerEl, { childList: true, subtree: true, characterData: true });
+    state.listObserver = new MutationObserver(scheduleEmit);
+    state.listObserver.observe(listEl, { childList: true, subtree: true, characterData: true });
+    log('Observing artifact list updates.');
   }
 
-  function tryInitOnce() {
-    const container = findSidebarContainer();
-    if (!container) return false;
-
-    const host = ensureHost(container);
-    const frame = mountUi(host);
-    if (frame) startSidebarObserver(container, frame);
-    return true;
-  }
-
-  function initWithRetry() {
-    if (tryInitOnce()) {
-      log('Mounted.');
+  function ensureMounted() {
+    const panelRoot = findPanelRoot();
+    if (!panelRoot) {
+      // Studio panel hidden or not present.
+      detachListObserver();
+      state.panelRootEl = null;
+      state.hostEl = null;
+      state.frameEl = null;
       return;
     }
 
-    const timeoutMs = 15000;
-    const intervalMs = 250;
-    const start = Date.now();
+    const artifactList = panelRoot.querySelector(ARTIFACT_LIST_SELECTOR);
+    const host = ensureHost(panelRoot, artifactList);
+    const frame = mountUi(host);
 
-    const timer = window.setInterval(() => {
-      if (tryInitOnce()) {
-        window.clearInterval(timer);
-        log('Mounted after retry.');
-        return;
-      }
+    state.panelRootEl = panelRoot;
+    state.hostEl = host;
+    state.frameEl = frame;
 
-      if (Date.now() - start > timeoutMs) {
-        window.clearInterval(timer);
-        log('Sidebar not found; giving up after timeout.');
-      }
-    }, intervalMs);
+    if (artifactList && frame) {
+      attachListObserver(artifactList, frame);
+    }
   }
 
-  initWithRetry();
+  function scheduleEnsureMounted() {
+    if (ensureScheduled) return;
+    ensureScheduled = true;
+    requestAnimationFrame(() => {
+      ensureScheduled = false;
+      try {
+        ensureMounted();
+      } catch (err) {
+        console.warn('[NotebookLM Enhancer] ensureMounted failed', err);
+      }
+    });
+  }
+
+  // Global watchdog for SPA navigation + sidebar hide/show + list replacements.
+  const bodyObserver = new MutationObserver(scheduleEnsureMounted);
+  bodyObserver.observe(document.body, { childList: true, subtree: true });
+
+  // Also hook navigation events (NotebookLM is a SPA).
+  window.addEventListener('popstate', scheduleEnsureMounted);
+  try {
+    const origPushState = history.pushState;
+    history.pushState = function (...args) {
+      const ret = origPushState.apply(this, args);
+      scheduleEnsureMounted();
+      return ret;
+    };
+    const origReplaceState = history.replaceState;
+    history.replaceState = function (...args) {
+      const ret = origReplaceState.apply(this, args);
+      scheduleEnsureMounted();
+      return ret;
+    };
+  } catch {
+    // Ignore if we can't patch (should be rare).
+  }
+
+  // Initial mount.
+  scheduleEnsureMounted();
 })();

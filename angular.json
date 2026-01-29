@@ -37,7 +37,19 @@
               "outputPath": "dist/extension",
               "baseHref": "./",
               "deployUrl": "./",
-              "outputHashing": "none"
+              "outputHashing": "none",
+              "sourceMap": true,
+              "extractLicenses": false,
+              "optimization": {
+                "scripts": true,
+                "styles": {
+                  "minify": false,
+                  "inlineCritical": false
+                },
+                "fonts": {
+                  "inline": false
+                }
+              }
             },
             "production": {
               "budgets": [
