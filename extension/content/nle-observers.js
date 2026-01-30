@@ -21,7 +21,10 @@
       scheduled = false;
       if (!state.listEl || !state.frameEl?.contentWindow) return;
       const notebooks = NLE.extractNotebooksFromSidebar(state.listEl);
+      state.notebooks = notebooks; // Store for drag reference
       NLE.postNotebooks(state.frameEl, notebooks);
+      // Setup native drag handlers on notes
+      if (NLE.setupNativeDrag) NLE.setupNativeDrag();
     };
     const scheduleEmit = () => {
       if (scheduled) return;

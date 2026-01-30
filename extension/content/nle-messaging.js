@@ -56,19 +56,34 @@
     if (!event.data || typeof event.data !== 'object') return;
 
     const data = /** @type {{ type?: unknown; payload?: unknown }} */ (event.data);
-    if (data.type !== messageTypeOpenNotebook) return;
 
-    const payload = /** @type {{ title?: unknown; index?: unknown }} */ (data.payload ?? {});
+    // Handle open notebook request
+    if (data.type === messageTypeOpenNotebook) {
+      const payload = /** @type {{ title?: unknown; index?: unknown }} */ (data.payload ?? {});
 
-    let ok = false;
-    if (typeof payload.index === 'number' && Number.isInteger(payload.index) && payload.index >= 0) {
-      ok = openNativeNotebookByIndex(payload.index);
+      let ok = false;
+      if (typeof payload.index === 'number' && Number.isInteger(payload.index) && payload.index >= 0) {
+        ok = openNativeNotebookByIndex(payload.index);
+      }
+
+      if (!ok && typeof payload.title === 'string') {
+        ok = openNativeNotebookByTitle(payload.title);
+      }
+
+      if (!ok) NLE.log('Notebook not found for click:', payload);
+      return;
     }
 
-    if (!ok && typeof payload.title === 'string') {
-      ok = openNativeNotebookByTitle(payload.title);
+    // Handle visibility update request
+    if (data.type === 'NLE_UPDATE_VISIBILITY') {
+      const payload = /** @type {{ folderByTitle?: unknown }} */ (data.payload ?? {});
+      const folderByTitle = payload.folderByTitle;
+      if (folderByTitle && typeof folderByTitle === 'object') {
+        if (NLE.updateNativeNoteVisibility) {
+          NLE.updateNativeNoteVisibility(/** @type {Record<string, string>} */(folderByTitle));
+        }
+      }
+      return;
     }
-
-    if (!ok) NLE.log('Notebook not found for click:', payload);
   });
 })();

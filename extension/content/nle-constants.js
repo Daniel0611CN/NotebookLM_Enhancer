@@ -9,6 +9,7 @@
 
     messageTypeNotebooksSync: 'NLE_NOTEBOOKS_SYNC',
     messageTypeOpenNotebook: 'NLE_OPEN_NOTEBOOK',
+    messageTypeNativeDrop: 'NLE_NATIVE_DROP',
 
     selectors: {
       studioPanel: 'section.studio-panel',

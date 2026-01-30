@@ -131,102 +131,25 @@ export class AppComponent implements OnDestroy {
   }
 
   private updateNativeVisibility(): void {
-    // This is a heuristic to find native notebook elements on the page.
-    // We look for elements that contain the title of the notebook.
-    // This runs in the context of the extension, effectively on the page.
-
-    // We need to wait a tick for DOM or repeat this check?
-    // Let's try immediately.
-
-    const allKeyMap = this.folders.notebookFolderByKey$.value;
+    // Build a map of title -> folderId for notes that are in folders
     const allTitleMap = this.folders.notebookFolderByTitle$.value;
+    const allKeyMap = this.folders.notebookFolderByKey$.value;
 
-    // Strategy: Look for all anchor tags or probable notebook containers
-    // Common NotebookLM selector might be 'a' or class names we can't guess.
-    // We'll search ANY element with text matching a notebook title.
+    // Create a map of all titles that should be hidden (have a folder assigned)
+    const folderByTitle: Record<string, string> = {};
 
-    // Optimization: Only search once if possible, but title specific is safer.
-
-    // Note: We need to be careful not to hide OUR own widget items.
-    // Our widget items are inside app-root.
-    // We want to hide items OUTSIDE app-root (or separate from our widget).
-
-    // Let's iterate all notebooks we know about.
     for (const nb of this.notebooks) {
       const folderId = allKeyMap[nb.key] ?? allTitleMap[nb.title] ?? null;
-      const shouldHide = !!folderId;
-
-      // simplistic text search - might be flaky but best effort without class names
-      // We'll use XPath to find elements with matching text that are NOT inside our app
-      // distinct from our app items.
-
-      this.toggleNativeItemVisibility(nb, shouldHide);
-    }
-  }
-
-  private toggleNativeItemVisibility(nb: NotebookItem, hide: boolean): void {
-    const title = nb.title;
-    // Use XPath to find elements containing the title text
-    const xpath = `//div[contains(text(), "${title}")] | //a[contains(text(), "${title}")] | //span[contains(text(), "${title}")]`;
-    const result = document.evaluate(xpath, document.body, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-
-    for (let i = 0; i < result.snapshotLength; i++) {
-      const el = result.snapshotItem(i) as HTMLElement;
-      if (!el) continue;
-
-      // Traverse up to find the "Card" container.
-      // Heuristic: The card is likely a few parents up, or the element itself.
-      // We ignore elements inside <app-root> (our widget).
-      if (el.closest('app-root')) continue;
-
-      // Find a suitable container to hide. 
-      // Often the card is an <a href="..."> or a div with role="button" or similar.
-      // We'll look for a parent that looks like a list item.
-      // If standard Material, it might be 'mat-card' or similar, but generic logic:
-      // Walk up 3-4 levels to find a block container?
-
-      let container = el;
-      // Safety limit
-      let p = el.parentElement;
-      let depth = 0;
-      while (p && depth < 5) {
-        // If parent is the main grid, stop (don't hide the grid).
-        // If parent has multiple children, it might be the card.
-        // This is risky. 
-        // Alternative: Just hide the text? No, user wants element gone.
-
-        // Let's assume the Link <a> is the card if it exists.
-        if (p.tagName === 'A') {
-          container = p;
-          break;
-        }
-        // Use the element that has some specific class? We don't know.
-        // Fallback: If we find an <a> tag in ancestry, hide it.
-        p = p.parentElement;
-        depth++;
-      }
-
-      // If we found an A tag, hide it or set up drag.
-      if (container.tagName === 'A' || depth === 5) {
-        if (container.tagName !== 'A' && depth === 5) container = el.parentElement?.parentElement ?? el;
-
-        if (hide) {
-          container.style.display = 'none';
-        } else {
-          container.style.display = '';
-          // Native Drag Setup
-          container.setAttribute('draggable', 'true');
-          // Remove old listener to avoid duplicates? We can't easily.
-          // But overwriting ondragstart is safe simple way.
-          container.ondragstart = (e) => {
-            if (e.dataTransfer) {
-              e.dataTransfer.setData('application/json', JSON.stringify({ key: nb.key, title: nb.title }));
-              e.dataTransfer.effectAllowed = 'move';
-            }
-          };
-        }
+      if (folderId) {
+        folderByTitle[nb.title.trim()] = folderId;
       }
     }
+
+    // Send message to parent (content script) to hide/show native notes
+    window.parent.postMessage({
+      type: 'NLE_UPDATE_VISIBILITY',
+      payload: { folderByTitle }
+    }, '*');
   }
 
 

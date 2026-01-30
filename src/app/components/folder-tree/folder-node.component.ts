@@ -46,8 +46,14 @@ export class FolderNodeComponent {
   onNativeDrop(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
-    const data = event.dataTransfer?.getData('application/json');
+
+    // Try our custom type first, then fallback to application/json
+    let data = event.dataTransfer?.getData('application/x-nle-note');
+    if (!data) {
+      data = event.dataTransfer?.getData('application/json');
+    }
     if (!data) return;
+
     try {
       const nb = JSON.parse(data) as NotebookItem;
       // Emit droppedNotebook with duck-typed event

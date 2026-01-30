@@ -3,17 +3,24 @@
   "name": "NotebookLM Enhancer",
   "version": "0.0.1",
   "description": "Adds folders and enhancements to NotebookLM sidebar.",
-  "permissions": ["storage"],
-  "host_permissions": ["https://notebooklm.google.com/*"],
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://notebooklm.google.com/*"
+  ],
   "content_scripts": [
     {
-      "matches": ["https://notebooklm.google.com/*"],
+      "matches": [
+        "https://notebooklm.google.com/*"
+      ],
       "js": [
         "content/nle-constants.js",
         "content/nle-logger.js",
         "content/nle-state.js",
         "content/nle-notebooks.js",
         "content/nle-dom.js",
+        "content/nle-drag.js",
         "content/nle-messaging.js",
         "content/nle-observers.js",
         "content/main.js"
@@ -23,8 +30,16 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["index.html", "*.js", "*.css", "assets/**", "favicon.ico"],
-      "matches": ["https://notebooklm.google.com/*"]
+      "resources": [
+        "index.html",
+        "*.js",
+        "*.css",
+        "assets/**",
+        "favicon.ico"
+      ],
+      "matches": [
+        "https://notebooklm.google.com/*"
+      ]
     }
   ]
 }
