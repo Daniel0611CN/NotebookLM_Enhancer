@@ -45,6 +45,8 @@
 
     <!-- Minimal Hover Actions -->
     <div class="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+      <!-- Only show create subfolder button at root level (depth 0) -->
+      @if (depth === 0) {
       <button type="button"
         class="flex h-6 w-6 items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-[#9AA0A6] transition-colors"
         (click)="createSubfolder.emit(node.folder)" title="Crear subcarpeta">
@@ -52,6 +54,7 @@
           <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
         </svg>
       </button>
+      }
       <button type="button"
         class="flex h-6 w-6 items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-[#9AA0A6] transition-colors"
         (click)="renameFolder.emit(node.folder)" title="Renombrar">

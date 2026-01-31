@@ -45,6 +45,15 @@ export class FolderStructureService {
     const base = this.state$.value;
     if (!base) throw new Error('FolderStructureService not initialized');
 
+    // Validate: Only allow 1 level of subfolders (max depth = 1)
+    // If parentId is provided, check that the parent is a root folder (parentId === null)
+    if (parentId) {
+      const parent = base.folders.find((f) => f.id === parentId);
+      if (parent && parent.parentId !== null) {
+        throw new Error('Cannot create subfolders deeper than 1 level');
+      }
+    }
+
     const folder: Folder = {
       id: uid(),
       name: name.trim() || 'Untitled',
