@@ -12,15 +12,17 @@ import type { Notebook } from './models/notebook.model';
 import type { ThemeType } from './models/theme.model';
 import { FolderTreeComponent } from './components/folder-tree/folder-tree.component';
 import { NotebookItemComponent } from './components/notebook-item/notebook-item.component';
+import { ModalComponent } from './components/modal/modal.component';
 
 import { FolderStructureService } from './services/folder-structure.service';
 import { ThemeService } from './services/theme.service';
+import { ModalService } from './services/modal.service';
 
 type NotebookItem = Notebook;
 
 @Component({
   selector: 'app-root',
-  imports: [AsyncPipe, DragDropModule, FolderTreeComponent, NotebookItemComponent],
+  imports: [AsyncPipe, DragDropModule, FolderTreeComponent, NotebookItemComponent, ModalComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })
@@ -51,10 +53,20 @@ export class AppComponent implements OnDestroy {
 
   private readonly onMessage: (event: MessageEvent) => void;
 
+  // Modal state
+  isModalOpen = false;
+  private modalState: import('./models/modal.model').ModalState | null = null;
+
+  // Modal configuration getter for template
+  get modalConfig() {
+    return this.modalService.activeModal$;
+  }
+
   constructor(
     private readonly ngZone: NgZone,
     private readonly folders: FolderStructureService,
-    private readonly themeService: ThemeService
+    private readonly themeService: ThemeService,
+    readonly modalService: ModalService
   ) {
     this.folders$ = this.folders.folders$;
     this.notebookFolderByKey$ = this.folders.notebookFolderByKey$;
@@ -125,6 +137,13 @@ export class AppComponent implements OnDestroy {
     this.subs.add(
       this.folders.notebookFolderByKey$.subscribe(() => {
         this.recomputeNotebookSections();
+      })
+    );
+
+    // Subscribe to modal state
+    this.subs.add(
+      this.modalService.activeModal$.subscribe((modal) => {
+        this.isModalOpen = modal !== null;
       })
     );
   }
@@ -242,13 +261,13 @@ export class AppComponent implements OnDestroy {
   }
 
   async createFolder(): Promise<void> {
-    const name = window.prompt('Folder name');
+    const name = await this.modalService.prompt('Nueva carpeta');
     if (!name) return;
     await this.folders.createFolder(name);
   }
 
   async createSubfolder(parent: Folder): Promise<void> {
-    const name = window.prompt('Subfolder name');
+    const name = await this.modalService.prompt('Nueva subcarpeta');
     if (!name) return;
     await this.folders.createFolder(name, parent.id);
   }
@@ -258,14 +277,15 @@ export class AppComponent implements OnDestroy {
   }
 
   async renameFolder(folder: Folder): Promise<void> {
-    const name = window.prompt('New folder name', folder.name);
+    const name = await this.modalService.prompt('Renombrar carpeta', folder.name);
     if (!name) return;
     await this.folders.renameFolder(folder.id, name);
   }
 
   async deleteFolder(folder: Folder): Promise<void> {
-    const ok = window.confirm(
-      `Delete folder "${folder.name}" and its subfolders? Notebooks in deleted folders will be moved to Unsorted.`
+    const ok = await this.modalService.confirm(
+      'Eliminar carpeta',
+      `¿Seguro que quieres eliminar "${folder.name}" y sus subcarpetas? Las notas se moverán a Inbox.`
     );
     if (!ok) return;
     await this.folders.deleteFolder(folder.id);

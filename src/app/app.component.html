@@ -35,8 +35,6 @@
             </svg>
           } @else if (themeIcon === 'moon') {
             <!-- Moon icon for dark mode -->
-            
-        
             <svg viewBox="0 0 24 24" class="h-4 w-4 fill-current">
                 <path d="
                   M21 12
@@ -44,8 +42,6 @@
                   A7 7 0 1 0 21 12
                 "/>
               </svg>
-
-
           } @else {
             <!-- Monitor icon for system mode -->
             <svg viewBox="0 0 24 24" class="h-5 w-5 fill-current">
@@ -138,5 +134,14 @@
     </div>
     }
   </div>
+
+  <!-- Modal Component -->
+  @if (isModalOpen) {
+    <app-modal
+      [config]="(modalConfig | async)?.config!"
+      [isOpen]="isModalOpen"
+      (closed)="modalService.close($event)"
+    />
+  }
 
 </div>
