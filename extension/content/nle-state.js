@@ -12,6 +12,8 @@
     // Last notebook snapshot extracted from native DOM.
     notebooks: [],
 
+    activeNotebookId: null,
+
     // Hide the native list entirely; widget becomes the only UI.
     hideNativeList: true,
     nativeListEl: null,

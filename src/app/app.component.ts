@@ -106,6 +106,15 @@ export class AppComponent implements OnDestroy {
         return;
       }
 
+      if (data.type === 'NLE_ACTIVE_NOTEBOOK') {
+        const payload = data.payload as { notebookId?: unknown };
+        const notebookId = typeof payload.notebookId === 'string' ? payload.notebookId : null;
+        this.ngZone.run(() => {
+          void this.folders.setActiveNotebookId(notebookId);
+        });
+        return;
+      }
+
       if (data.type === 'NLE_NATIVE_DROP') {
         const payload = data.payload as { notebook?: unknown; x?: unknown; y?: unknown };
         const nbRaw = payload.notebook;
@@ -146,6 +155,9 @@ export class AppComponent implements OnDestroy {
         this.isModalOpen = modal !== null;
       })
     );
+    
+    // Signal to content script that iframe is ready to receive messages
+    window.parent.postMessage({ type: 'NLE_IFRAME_READY' }, '*');
   }
 
   private recomputeNotebookSections(): void {

@@ -13,11 +13,32 @@ export type StorageStateV2 = {
   notebookFolderByTitle: Record<string, string | null>;
 };
 
-export type StorageState = StorageStateV2;
+export type NotebookScopedState = {
+  folders: Folder[];
+  notebookFolderByKey: Record<string, string | null>;
+  notebookFolderByTitle: Record<string, string | null>;
+};
+
+export type StorageStateV3 = {
+  version: 3;
+  byNotebook: Record<string, NotebookScopedState>;
+  activeNotebookId?: string;
+};
+
+export type StorageState = StorageStateV3;
+
+export function createEmptyNotebookState(): NotebookScopedState {
+  return {
+    folders: [],
+    notebookFolderByKey: {},
+    notebookFolderByTitle: {},
+  };
+}
 
 export const DEFAULT_STORAGE_STATE: StorageState = {
-  version: 2,
-  folders: [],
-  notebookFolderByKey: {},
-  notebookFolderByTitle: {},
+  version: 3,
+  byNotebook: {
+    default: createEmptyNotebookState(),
+  },
+  activeNotebookId: 'default',
 };

@@ -3,6 +3,7 @@
   const NLE = (window.__NLE__ = window.__NLE__ || {});
   const {
     messageTypeNotebooksSync,
+    messageTypeActiveNotebook,
     messageTypeOpenNotebook,
     messageTypeOpenNotebookMenu,
     messageTypeDeleteNotebook,
@@ -77,6 +78,44 @@
       },
       '*'
     );
+  };
+
+  // Store last notebookId to send to iframe when it becomes ready
+  state.lastNotebookId = null;
+
+  NLE.postActiveNotebook = function postActiveNotebook(frameEl, notebookId) {
+    if (!frameEl?.contentWindow) return;
+
+    // Store for later if iframe sends READY request
+    state.lastNotebookId = notebookId;
+    
+    NLE.log('Sending NLE_ACTIVE_NOTEBOOK:', notebookId);
+    frameEl.contentWindow.postMessage(
+      {
+        type: messageTypeActiveNotebook,
+        payload: {
+          notebookId,
+        },
+      },
+      '*'
+    );
+  };
+  
+  // Handle iframe ready signal
+  NLE.sendLastNotebookId = function sendLastNotebookId(frameEl) {
+    if (!frameEl?.contentWindow) return;
+    if (state.lastNotebookId !== null) {
+      NLE.log('Iframe ready, sending last notebookId:', state.lastNotebookId);
+      frameEl.contentWindow.postMessage(
+        {
+          type: messageTypeActiveNotebook,
+          payload: {
+            notebookId: state.lastNotebookId,
+          },
+        },
+        '*'
+      );
+    }
   };
 
   function openNativeNotebookByTitle(title) {
@@ -253,6 +292,15 @@
         if (NLE.updateNativeNoteVisibility) {
           NLE.updateNativeNoteVisibility(/** @type {Record<string, string>} */(folderByTitle));
         }
+      }
+      return;
+    }
+    
+    // Handle iframe ready signal - resend last notebookId
+    if (data.type === 'NLE_IFRAME_READY') {
+      NLE.log('Iframe reported ready, sending last notebookId');
+      if (NLE.sendLastNotebookId) {
+        NLE.sendLastNotebookId(state.frameEl);
       }
       return;
     }

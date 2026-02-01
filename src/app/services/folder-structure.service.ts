@@ -2,7 +2,8 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 
 import type { Folder } from '../models/folder.model';
-import type { StorageState } from '../models/storage-state.model';
+import type { NotebookScopedState, StorageState } from '../models/storage-state.model';
+import { createEmptyNotebookState } from '../models/storage-state.model';
 import { StorageService } from './storage.service';
 
 function uid(): string {
@@ -16,6 +17,8 @@ function uid(): string {
 @Injectable({ providedIn: 'root' })
 export class FolderStructureService {
   private readonly state$ = new BehaviorSubject<StorageState | null>(null);
+  private activeNotebookId = 'default';
+  private pendingNotebookId: string | null = null;
 
   readonly folders$ = new BehaviorSubject<Folder[]>([]);
   readonly notebookFolderByKey$ = new BehaviorSubject<Record<string, string | null>>({});
@@ -28,27 +31,91 @@ export class FolderStructureService {
   private async init(): Promise<void> {
     const state = await this.storage.load();
     this.state$.next(state);
-    this.folders$.next(state.folders);
-    this.notebookFolderByKey$.next(state.notebookFolderByKey);
-    this.notebookFolderByTitle$.next(state.notebookFolderByTitle);
+    if (this.pendingNotebookId) {
+      this.activeNotebookId = this.pendingNotebookId;
+      this.pendingNotebookId = null;
+    } else {
+      this.activeNotebookId = state.activeNotebookId ?? 'default';
+    }
+    if (!state.byNotebook[this.activeNotebookId]) {
+      const nextState: StorageState = {
+        ...state,
+        byNotebook: {
+          ...state.byNotebook,
+          [this.activeNotebookId]: createEmptyNotebookState(),
+        },
+        activeNotebookId: this.activeNotebookId,
+      };
+      await this.commit(nextState);
+      return;
+    }
+    this.applyActiveNotebook(state);
+  }
+
+  private applyActiveNotebook(state: StorageState): void {
+    const notebook = state.byNotebook[this.activeNotebookId] ?? createEmptyNotebookState();
+    this.folders$.next(notebook.folders);
+    this.notebookFolderByKey$.next(notebook.notebookFolderByKey);
+    this.notebookFolderByTitle$.next(notebook.notebookFolderByTitle);
+  }
+
+  private updateActiveNotebook(state: StorageState, nextNotebook: NotebookScopedState): StorageState {
+    return {
+      ...state,
+      byNotebook: {
+        ...state.byNotebook,
+        [this.activeNotebookId]: nextNotebook,
+      },
+      activeNotebookId: this.activeNotebookId,
+    };
   }
 
   private async commit(next: StorageState): Promise<void> {
     this.state$.next(next);
-    this.folders$.next(next.folders);
-    this.notebookFolderByKey$.next(next.notebookFolderByKey);
-    this.notebookFolderByTitle$.next(next.notebookFolderByTitle);
+    this.applyActiveNotebook(next);
     await this.storage.save(next);
+  }
+
+  async setActiveNotebookId(notebookId: string | null): Promise<void> {
+    const nextId = notebookId && notebookId.trim() ? notebookId.trim() : 'default';
+    const base = this.state$.value;
+    if (!base) {
+      this.pendingNotebookId = nextId;
+      return;
+    }
+
+    this.activeNotebookId = nextId;
+    
+    if (!base.byNotebook[nextId]) {
+      const nextState: StorageState = {
+        ...base,
+        byNotebook: {
+          ...base.byNotebook,
+          [nextId]: createEmptyNotebookState(),
+        },
+        activeNotebookId: nextId,
+      };
+      await this.commit(nextState);
+      return;
+    }
+    const nextState: StorageState = {
+      ...base,
+      activeNotebookId: nextId,
+    };
+    this.state$.next(nextState);
+    this.applyActiveNotebook(nextState);
+    await this.storage.save(nextState);
   }
 
   async createFolder(name: string, parentId: string | null = null): Promise<Folder> {
     const base = this.state$.value;
     if (!base) throw new Error('FolderStructureService not initialized');
+    const current = base.byNotebook[this.activeNotebookId] ?? createEmptyNotebookState();
 
     // Validate: Only allow 1 level of subfolders (max depth = 1)
     // If parentId is provided, check that the parent is a root folder (parentId === null)
     if (parentId) {
-      const parent = base.folders.find((f) => f.id === parentId);
+      const parent = current.folders.find((f) => f.id === parentId);
       if (parent && parent.parentId !== null) {
         throw new Error('Cannot create subfolders deeper than 1 level');
       }
@@ -62,10 +129,12 @@ export class FolderStructureService {
       createdAt: Date.now(),
     };
 
-    await this.commit({
-      ...base,
-      folders: [...base.folders, folder],
-    });
+    await this.commit(
+      this.updateActiveNotebook(base, {
+        ...current,
+        folders: [...current.folders, folder],
+      })
+    );
 
     return folder;
   }
@@ -73,51 +142,60 @@ export class FolderStructureService {
   async renameFolder(folderId: string, name: string): Promise<void> {
     const base = this.state$.value;
     if (!base) throw new Error('FolderStructureService not initialized');
+    const current = base.byNotebook[this.activeNotebookId] ?? createEmptyNotebookState();
 
     const nextName = name.trim();
     if (!nextName) return;
 
-    await this.commit({
-      ...base,
-      folders: base.folders.map((f) => (f.id === folderId ? { ...f, name: nextName } : f)),
-    });
+    await this.commit(
+      this.updateActiveNotebook(base, {
+        ...current,
+        folders: current.folders.map((f) => (f.id === folderId ? { ...f, name: nextName } : f)),
+      })
+    );
   }
 
   async deleteFolder(folderId: string): Promise<void> {
     const base = this.state$.value;
     if (!base) throw new Error('FolderStructureService not initialized');
+    const current = base.byNotebook[this.activeNotebookId] ?? createEmptyNotebookState();
 
-    const deletedIds = this.getDescendantFolderIds(base.folders, folderId);
+    const deletedIds = this.getDescendantFolderIds(current.folders, folderId);
     deletedIds.add(folderId);
 
-    const remaining = base.folders.filter((f) => !deletedIds.has(f.id));
+    const remaining = current.folders.filter((f) => !deletedIds.has(f.id));
 
-    const nextKeyMap: Record<string, string | null> = { ...base.notebookFolderByKey };
+    const nextKeyMap: Record<string, string | null> = { ...current.notebookFolderByKey };
     for (const [key, id] of Object.entries(nextKeyMap)) {
       if (id && deletedIds.has(id)) nextKeyMap[key] = null;
     }
 
-    const nextTitleMap: Record<string, string | null> = { ...base.notebookFolderByTitle };
+    const nextTitleMap: Record<string, string | null> = { ...current.notebookFolderByTitle };
     for (const [title, id] of Object.entries(nextTitleMap)) {
       if (id && deletedIds.has(id)) nextTitleMap[title] = null;
     }
 
-    await this.commit({
-      ...base,
-      folders: remaining,
-      notebookFolderByKey: nextKeyMap,
-      notebookFolderByTitle: nextTitleMap,
-    });
+    await this.commit(
+      this.updateActiveNotebook(base, {
+        ...current,
+        folders: remaining,
+        notebookFolderByKey: nextKeyMap,
+        notebookFolderByTitle: nextTitleMap,
+      })
+    );
   }
 
   async toggleFolderCollapsed(folderId: string): Promise<void> {
     const base = this.state$.value;
     if (!base) throw new Error('FolderStructureService not initialized');
+    const current = base.byNotebook[this.activeNotebookId] ?? createEmptyNotebookState();
 
-    await this.commit({
-      ...base,
-      folders: base.folders.map((f) => (f.id === folderId ? { ...f, collapsed: !f.collapsed } : f)),
-    });
+    await this.commit(
+      this.updateActiveNotebook(base, {
+        ...current,
+        folders: current.folders.map((f) => (f.id === folderId ? { ...f, collapsed: !f.collapsed } : f)),
+      })
+    );
   }
 
   private getDescendantFolderIds(folders: Folder[], folderId: string): Set<string> {
@@ -143,34 +221,38 @@ export class FolderStructureService {
   async setNotebookFolder(notebookKey: string, folderId: string | null, notebookTitle?: string): Promise<void> {
     const base = this.state$.value;
     if (!base) throw new Error('FolderStructureService not initialized');
+    const current = base.byNotebook[this.activeNotebookId] ?? createEmptyNotebookState();
 
     const nextKeyMap: Record<string, string | null> = {
-      ...base.notebookFolderByKey,
+      ...current.notebookFolderByKey,
       [notebookKey]: folderId,
     };
 
     const nextTitleMap: Record<string, string | null> =
       typeof notebookTitle === 'string'
         ? {
-            ...base.notebookFolderByTitle,
+            ...current.notebookFolderByTitle,
             [notebookTitle]: folderId,
           }
-        : base.notebookFolderByTitle;
+        : current.notebookFolderByTitle;
 
-    await this.commit({
-      ...base,
-      notebookFolderByKey: nextKeyMap,
-      notebookFolderByTitle: nextTitleMap,
-    });
+    await this.commit(
+      this.updateActiveNotebook(base, {
+        ...current,
+        notebookFolderByKey: nextKeyMap,
+        notebookFolderByTitle: nextTitleMap,
+      })
+    );
   }
 
   async setNotebooksFolder(notebooks: Array<{ key: string; title?: string }>, folderId: string | null): Promise<void> {
     const base = this.state$.value;
     if (!base) throw new Error('FolderStructureService not initialized');
+    const current = base.byNotebook[this.activeNotebookId] ?? createEmptyNotebookState();
     if (notebooks.length === 0) return;
 
-    const nextKeyMap: Record<string, string | null> = { ...base.notebookFolderByKey };
-    const nextTitleMap: Record<string, string | null> = { ...base.notebookFolderByTitle };
+    const nextKeyMap: Record<string, string | null> = { ...current.notebookFolderByKey };
+    const nextTitleMap: Record<string, string | null> = { ...current.notebookFolderByTitle };
 
     for (const nb of notebooks) {
       if (!nb.key) continue;
@@ -181,10 +263,12 @@ export class FolderStructureService {
       }
     }
 
-    await this.commit({
-      ...base,
-      notebookFolderByKey: nextKeyMap,
-      notebookFolderByTitle: nextTitleMap,
-    });
+    await this.commit(
+      this.updateActiveNotebook(base, {
+        ...current,
+        notebookFolderByKey: nextKeyMap,
+        notebookFolderByTitle: nextTitleMap,
+      })
+    );
   }
 }

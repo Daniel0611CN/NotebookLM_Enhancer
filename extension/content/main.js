@@ -13,6 +13,18 @@
 
   // Also hook navigation events (NotebookLM is a SPA).
   window.addEventListener('popstate', NLE.scheduleEnsureMounted);
+  window.addEventListener('hashchange', NLE.scheduleEnsureMounted);
+  
+  // Poll for URL changes as a fallback (SPA navigation might not trigger popstate)
+  let lastUrl = location.href;
+  setInterval(() => {
+    if (location.href !== lastUrl) {
+      lastUrl = location.href;
+      NLE.log('URL changed (polling detected):', lastUrl);
+      NLE.scheduleEnsureMounted();
+    }
+  }, 500);
+  
   try {
     const origPushState = history.pushState;
     history.pushState = function (...args) {

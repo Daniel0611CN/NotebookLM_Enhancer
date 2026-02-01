@@ -66,6 +66,36 @@
     }
   };
 
+  function getNotebookIdFromUrl() {
+    try {
+      const url = new URL(window.location.href);
+      NLE.log('Current URL:', url.href);
+      const match = url.pathname.match(/\/notebook\/([a-f0-9-]+)/i);
+      if (match) {
+        NLE.log('Extracted notebookId:', match[1]);
+        return match[1];
+      }
+      NLE.log('No notebookId match in pathname:', url.pathname);
+      const fallback = `${url.pathname}${url.search}${url.hash}`;
+      return fallback && fallback !== '/' ? fallback : null;
+    } catch (err) {
+      NLE.log('Error extracting notebookId:', err);
+      return null;
+    }
+  }
+
+  function emitActiveNotebook() {
+    if (!state.frameEl?.contentWindow) return;
+    const notebookId = getNotebookIdFromUrl();
+    // Always emit if the ID changed (including from null to a value or vice versa)
+    if (notebookId === state.activeNotebookId) return;
+    NLE.log('Notebook ID changed from', state.activeNotebookId, 'to', notebookId);
+    state.activeNotebookId = notebookId;
+    if (NLE.postActiveNotebook) {
+      NLE.postActiveNotebook(state.frameEl, notebookId);
+    }
+  }
+
   NLE.attachListObserver = function attachListObserver(listEl, frameEl) {
     if (state.listEl === listEl && state.listObserver) return;
 
@@ -78,6 +108,7 @@
       if (!state.listEl || !state.frameEl?.contentWindow) return;
       const notebooks = NLE.extractNotebooksFromSidebar(state.listEl);
       state.notebooks = notebooks;
+      emitActiveNotebook();
       NLE.postNotebooks(state.frameEl, notebooks);
       // Setup native drag handlers on notes
       if (NLE.setupNativeDrag) NLE.setupNativeDrag();
@@ -88,7 +119,10 @@
       queueMicrotask(emit);
     };
 
-    frameEl.addEventListener('load', emit);
+    frameEl.addEventListener('load', () => {
+      emitActiveNotebook();
+      emit();
+    });
     emit();
 
     state.listObserver = new MutationObserver(scheduleEmit);
@@ -122,6 +156,9 @@
         setNativeListHidden(artifactList, true);
       }
     }
+    
+    // Always emit active notebook on mount/refresh to catch URL changes
+    emitActiveNotebook();
   };
 
   NLE.scheduleEnsureMounted = function scheduleEnsureMounted() {
@@ -131,6 +168,7 @@
       state.ensureScheduled = false;
       try {
         NLE.ensureMounted();
+        emitActiveNotebook();
       } catch (err) {
         console.warn('[NotebookLM Enhancer] ensureMounted failed', err);
       }

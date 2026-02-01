@@ -8,6 +8,7 @@
     iframeTitle: 'NotebookLM Enhancer',
 
     messageTypeNotebooksSync: 'NLE_NOTEBOOKS_SYNC',
+    messageTypeActiveNotebook: 'NLE_ACTIVE_NOTEBOOK',
     messageTypeOpenNotebook: 'NLE_OPEN_NOTEBOOK',
     messageTypeOpenNotebookMenu: 'NLE_OPEN_NOTE_MENU',
     messageTypeDeleteNotebook: 'NLE_DELETE_NOTEBOOK',

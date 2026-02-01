@@ -1,6 +1,14 @@
 import { Injectable } from '@angular/core';
 
-import { DEFAULT_STORAGE_STATE, type StorageState, type StorageStateV1, type StorageStateV2 } from '../models/storage-state.model';
+import {
+  createEmptyNotebookState,
+  DEFAULT_STORAGE_STATE,
+  type NotebookScopedState,
+  type StorageState,
+  type StorageStateV1,
+  type StorageStateV2,
+  type StorageStateV3,
+} from '../models/storage-state.model';
 
 type ChromeStorageArea = {
   get: (keys: string[] | string, cb: (items: Record<string, unknown>) => void) => void;
@@ -62,10 +70,44 @@ export class StorageService {
     if (!raw || typeof raw !== 'object') return DEFAULT_STORAGE_STATE;
 
     const v = (raw as { version?: unknown }).version;
+    if (v === 3) {
+      const obj = raw as Partial<StorageStateV3>;
+      const byNotebook: Record<string, NotebookScopedState> = {};
+      const rawMap = obj.byNotebook && typeof obj.byNotebook === 'object' ? (obj.byNotebook as Record<string, unknown>) : {};
+
+      for (const [key, value] of Object.entries(rawMap)) {
+        if (!value || typeof value !== 'object') {
+          byNotebook[key] = createEmptyNotebookState();
+          continue;
+        }
+        const nb = value as Partial<NotebookScopedState>;
+        byNotebook[key] = {
+          folders: Array.isArray(nb.folders) ? (nb.folders as NotebookScopedState['folders']) : [],
+          notebookFolderByKey:
+            nb.notebookFolderByKey && typeof nb.notebookFolderByKey === 'object'
+              ? (nb.notebookFolderByKey as NotebookScopedState['notebookFolderByKey'])
+              : {},
+          notebookFolderByTitle:
+            nb.notebookFolderByTitle && typeof nb.notebookFolderByTitle === 'object'
+              ? (nb.notebookFolderByTitle as NotebookScopedState['notebookFolderByTitle'])
+              : {},
+        };
+      }
+
+      if (Object.keys(byNotebook).length === 0) {
+        byNotebook['default'] = createEmptyNotebookState();
+      }
+
+      const activeNotebookId = typeof obj.activeNotebookId === 'string' ? obj.activeNotebookId : 'default';
+      return {
+        version: 3,
+        byNotebook,
+        activeNotebookId: byNotebook[activeNotebookId] ? activeNotebookId : 'default',
+      };
+    }
     if (v === 2) {
       const obj = raw as Partial<StorageStateV2>;
-      return {
-        version: 2,
+      const legacy: NotebookScopedState = {
         folders: Array.isArray(obj.folders) ? (obj.folders as StorageStateV2['folders']) : [],
         notebookFolderByKey:
           obj.notebookFolderByKey && typeof obj.notebookFolderByKey === 'object'
@@ -76,18 +118,31 @@ export class StorageService {
             ? (obj.notebookFolderByTitle as StorageStateV2['notebookFolderByTitle'])
             : {},
       };
+      return {
+        version: 3,
+        byNotebook: {
+          default: legacy,
+        },
+        activeNotebookId: 'default',
+      };
     }
 
     if (v === 1) {
       const obj = raw as Partial<StorageStateV1>;
-      return {
-        version: 2,
+      const legacy: NotebookScopedState = {
         folders: Array.isArray(obj.folders) ? (obj.folders as StorageStateV1['folders']) : [],
         notebookFolderByKey: {},
         notebookFolderByTitle:
           obj.notebookFolderByTitle && typeof obj.notebookFolderByTitle === 'object'
             ? (obj.notebookFolderByTitle as StorageStateV1['notebookFolderByTitle'])
             : {},
+      };
+      return {
+        version: 3,
+        byNotebook: {
+          default: legacy,
+        },
+        activeNotebookId: 'default',
       };
     }
 
