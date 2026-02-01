@@ -6,6 +6,56 @@
 
 (function () {
   const NLE = (window.__NLE__ = window.__NLE__ || {});
+  const state = NLE.state;
+
+  // Check if extension context is still valid
+  function isContextValid() {
+    try {
+      // This will throw if context is invalidated
+      return !!chrome.runtime.id;
+    } catch {
+      return false;
+    }
+  }
+
+  // Load initial enabled state from storage
+  async function loadEnabledState() {
+    try {
+      const result = await chrome.storage.sync.get('nle_enabled');
+      state.enabled = result.nle_enabled !== false; // Default to true
+      NLE.log('Extension enabled state:', state.enabled);
+    } catch (error) {
+      if (error?.message?.includes('Extension context invalidated')) {
+        NLE.log('Extension context invalidated during loadEnabledState');
+        contextInvalidated = true;
+        // Try to reinitialize
+        setTimeout(loadEnabledState, 1000);
+        return;
+      }
+      NLE.log('Failed to load enabled state, defaulting to enabled:', error);
+      state.enabled = true;
+    }
+    // After loading state, schedule initial mount
+    if (!contextInvalidated) {
+      NLE.scheduleEnsureMounted();
+    }
+  }
+
+  // Track if extension context is valid
+  let contextInvalidated = false;
+
+  // Listen for toggle messages from popup
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'NLE_TOGGLE_STATE') {
+      state.enabled = message.enabled;
+      NLE.log('Extension state toggled:', state.enabled);
+      
+      // Re-run ensureMounted to apply changes immediately
+      NLE.scheduleEnsureMounted();
+      
+      sendResponse({ success: true });
+    }
+  });
 
   // Global watchdog for SPA navigation + sidebar hide/show + list replacements.
   const bodyObserver = new MutationObserver(NLE.scheduleEnsureMounted);
@@ -42,6 +92,6 @@
     // Ignore if we can't patch (should be rare).
   }
 
-  // Initial mount.
-  NLE.scheduleEnsureMounted();
+  // Load state first, then mount
+  loadEnabledState();
 })();

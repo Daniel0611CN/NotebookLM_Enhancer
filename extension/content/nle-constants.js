@@ -13,6 +13,7 @@
     messageTypeOpenNotebookMenu: 'NLE_OPEN_NOTE_MENU',
     messageTypeDeleteNotebook: 'NLE_DELETE_NOTEBOOK',
     messageTypeNativeDrop: 'NLE_NATIVE_DROP',
+    messageTypeAddNote: 'NLE_ADD_NOTE',
 
     selectors: {
       studioPanel: 'section.studio-panel',

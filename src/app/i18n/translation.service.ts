@@ -31,7 +31,12 @@ export class TranslationService {
   translate(key: string, params?: Record<string, string>): string {
     if (!this.translations) return key;
 
-    const value = key.split('.').reduce((obj: any, k) => obj?.[k], this.translations);
+    const value = key.split('.').reduce<unknown>((obj, k) => {
+      if (obj && typeof obj === 'object' && k in obj) {
+        return (obj as Record<string, unknown>)[k];
+      }
+      return undefined;
+    }, this.translations as unknown);
     
     if (typeof value !== 'string') {
       console.warn(`Translation key not found: ${key}`);

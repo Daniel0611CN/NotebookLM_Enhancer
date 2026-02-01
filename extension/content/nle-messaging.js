@@ -7,6 +7,7 @@
     messageTypeOpenNotebook,
     messageTypeOpenNotebookMenu,
     messageTypeDeleteNotebook,
+    messageTypeAddNote,
     selectors,
   } = NLE.constants;
   const state = NLE.state;
@@ -301,6 +302,18 @@
       NLE.log('Iframe reported ready, sending last notebookId');
       if (NLE.sendLastNotebookId) {
         NLE.sendLastNotebookId(state.frameEl);
+      }
+      return;
+    }
+    
+    // Handle add note request
+    if (data.type === messageTypeAddNote) {
+      const addNoteButton = document.querySelector('.add-note-button-container .add-note-button');
+      if (addNoteButton) {
+        addNoteButton.click();
+        NLE.log('Add note button clicked');
+      } else {
+        NLE.log('Add note button not found');
       }
       return;
     }

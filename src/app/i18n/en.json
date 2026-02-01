@@ -54,7 +54,8 @@
     "expandInbox": "Expand Inbox",
     "collapseInbox": "Collapse Inbox",
     "language": "Change Language",
-    "theme": "Change Theme"
+    "theme": "Change Theme",
+    "addNote": "Add Note"
   },
   "aria": {
     "expandInbox": "Expand Inbox",

@@ -49,9 +49,9 @@ export class FolderNodeComponent {
   }
 
   onHeaderClick(event: MouseEvent): void {
-    // Check if the click was on an action button or its children
+    // Check if the click was on an action button
     const target = event.target as HTMLElement;
-    const isActionButton = target.closest('button') !== null || target.closest('svg') !== null;
+    const isActionButton = target.closest('button') !== null;
     
     if (!isActionButton) {
       // Only toggle if there are children or notebooks to show/hide

@@ -263,6 +263,15 @@ export class AppComponent implements OnDestroy {
     );
   }
 
+  addNote(): void {
+    window.parent.postMessage(
+      {
+        type: 'NLE_ADD_NOTE',
+      },
+      '*'
+    );
+  }
+
   async createFolder(): Promise<void> {
     const name = await this.modalService.prompt(this.translationService.translate('modals.newFolder.title'));
     if (!name) return;

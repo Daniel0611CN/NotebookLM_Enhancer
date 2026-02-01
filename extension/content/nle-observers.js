@@ -131,6 +131,21 @@
   };
 
   NLE.ensureMounted = function ensureMounted() {
+    // Check if extension is enabled
+    if (!state.enabled) {
+      // Extension disabled - remove our UI if present and restore native list
+      if (state.hostEl) {
+        state.hostEl.remove();
+        state.hostEl = null;
+        state.frameEl = null;
+      }
+      if (state.nativeListEl) {
+        setNativeListHidden(state.nativeListEl, false);
+      }
+      NLE.detachListObserver();
+      return;
+    }
+
     const panelRoot = NLE.findPanelRoot();
     if (!panelRoot) {
       // Studio panel hidden or not present.
@@ -170,7 +185,24 @@
         NLE.ensureMounted();
         emitActiveNotebook();
       } catch (err) {
-        console.warn('[NotebookLM Enhancer] ensureMounted failed', err);
+        // Check if it's a context invalidated error
+        if (err?.message?.includes('Extension context invalidated') || 
+            err?.message?.includes('context invalidated')) {
+          NLE.log('Extension context invalidated, attempting recovery...');
+          // Clear state and try to reinitialize
+          state.hostEl = null;
+          state.frameEl = null;
+          // Schedule a retry after a short delay
+          setTimeout(() => {
+            try {
+              NLE.scheduleEnsureMounted();
+            } catch (retryErr) {
+              console.warn('[NotebookLM Enhancer] Recovery failed:', retryErr);
+            }
+          }, 500);
+        } else {
+          console.warn('[NotebookLM Enhancer] ensureMounted failed', err);
+        }
       }
     });
   };

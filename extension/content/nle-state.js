@@ -24,5 +24,8 @@
     activeNativeDrag: null,
 
     ensureScheduled: false,
+
+    // Extension enabled state (can be toggled from popup)
+    enabled: true,
   };
 })();
