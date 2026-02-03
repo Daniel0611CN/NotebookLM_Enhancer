@@ -6,7 +6,7 @@
 
 (function () {
   'use strict';
-  
+
   const NLE = (window.__NLE__ = window.__NLE__ || {});
   const { t } = NLE.exportI18n;
   const templates = NLE.exportTemplates;
@@ -26,7 +26,7 @@
     const wordCount = content.text.trim().split(/\s+/).filter(word => word.length > 0).length;
     const preview = content.text.substring(0, templates.PREVIEW_LENGTH);
     const hasMore = content.text.length > templates.PREVIEW_LENGTH;
-    
+
     return {
       title: content.title,
       preview: preview + (hasMore ? '...' : ''),
@@ -70,18 +70,18 @@
    */
   function updateSizeEstimate() {
     if (!currentExportData || !previewModal) return;
-    
+
     const selectedFormat = previewModal.querySelector('.format-btn.selected')?.dataset.format || 'pdf';
     const includeImages = previewModal.querySelector('#opt-images')?.checked || false;
-    const includeCitations = previewModal.querySelector('#opt-citations')?.checked || false;
-    
+    const includeCitations = true; // Default to true as option is removed from UI
+
     const sizeText = calculateSize(
-      selectedFormat, 
-      currentExportData.charCount, 
-      includeImages, 
+      selectedFormat,
+      currentExportData.charCount,
+      includeImages,
       includeCitations
     );
-    
+
     const sizeEl = previewModal.querySelector('#size-text');
     if (sizeEl) sizeEl.textContent = `${t('estimatedSize')}: ${sizeText}`;
   }
@@ -94,6 +94,48 @@
     pdfOnly?.forEach(el => {
       el.style.display = format === 'pdf' ? 'flex' : 'none';
     });
+  }
+
+  /**
+   * Update content preview based on selected format
+   */
+  async function updatePreviewContent() {
+    if (!currentExportData || !previewModal) return;
+
+    const selectedFormat = previewModal.querySelector('.format-btn.selected')?.dataset.format || 'pdf';
+    const includeImages = previewModal.querySelector('#opt-images')?.checked || false;
+    const includeCitations = true; // Default to true as option is removed from UI
+    const addPageNumbers = previewModal.querySelector('#opt-pagenumbers')?.checked || false;
+
+    const options = { includeImages, includeCitations, addPageNumbers };
+
+    // Create format map (lazy way since we can't import easily in IIFE structure without reorganizing, assume global)
+    const formatMap = {
+      'pdf': NLE.exportFormatPDF,
+      'markdown': NLE.exportFormatMarkdown,
+      'html': NLE.exportFormatHTML,
+      'txt': NLE.exportFormatTXT,
+    };
+
+    const formatModule = formatMap[selectedFormat];
+    if (formatModule && typeof formatModule.getPreview === 'function') {
+      // Some previews might be async
+      const previewText = await formatModule.getPreview(currentExportData.fullContent, options);
+
+      const previewEl = previewModal.querySelector('.content-preview');
+      if (previewEl) {
+        // If HTML format, we might want to respect newlines or formatting
+        previewEl.textContent = previewText.substring(0, templates.PREVIEW_LENGTH * 2) + (previewText.length > templates.PREVIEW_LENGTH * 2 ? '...' : '');
+      }
+    }
+  }
+
+  /**
+   * Update all dynamic UI elements (size, preview)
+   */
+  function updateUI() {
+    updateSizeEstimate();
+    updatePreviewContent();
   }
 
   /**
@@ -116,13 +158,13 @@
         btn.classList.add('selected');
         const format = btn.dataset.format;
         togglePdfOptions(format);
-        updateSizeEstimate();
+        updateUI();
       });
     });
 
     // Options changes
     previewModal.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-      checkbox.addEventListener('change', updateSizeEstimate);
+      checkbox.addEventListener('change', updateUI);
     });
 
     // Export button
@@ -137,7 +179,9 @@
 
     const format = previewModal.querySelector('.format-btn.selected')?.dataset.format;
     const includeImages = previewModal.querySelector('#opt-images')?.checked || false;
-    const includeCitations = previewModal.querySelector('#opt-citations')?.checked || false;
+    const includeCitations = true; // Default to true as option is removed from UI
+
+    const addPageNumbers = previewModal.querySelector('#opt-pagenumbers')?.checked || false;
 
     // Show loading
     const exportBtn = previewModal.querySelector('#btn-export');
@@ -155,18 +199,19 @@
       const formatModule = formatMap[format];
       if (!formatModule) throw new Error('Unknown format');
 
-      let content = { ...currentExportData.fullContent };
-      
-      if (!includeImages) {
-        content.html = content.html.replace(/<img[^>]*>/gi, '');
-      }
+      const content = { ...currentExportData.fullContent };
+      const options = {
+        includeImages,
+        includeCitations,
+        addPageNumbers
+      };
 
-      await formatModule.export(content);
+      await formatModule.export(content, options);
       closeModal();
-      
+
     } catch (error) {
       console.error('[NLE Export] Failed:', error);
-      exportBtn.innerHTML = '<span class="material-symbols-outlined">download</span> ' + t('export');
+      exportBtn.innerHTML = t('export'); // Removed icon
       exportBtn.disabled = false;
     }
   }
@@ -186,9 +231,12 @@
     currentExportData = data;
     previewModal = createExportModal(data, initialFormat);
     document.body.appendChild(previewModal);
-    
+
     setupListeners();
-    setTimeout(updateSizeEstimate, 0);
+    // Use a small delay to ensure DOM is ready
+    setTimeout(() => {
+      updateUI();
+    }, 0);
 
     NLE.log('Export modal shown with content preview');
   }

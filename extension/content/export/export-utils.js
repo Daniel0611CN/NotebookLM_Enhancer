@@ -6,7 +6,7 @@
 
 (function () {
   'use strict';
-  
+
   const NLE = (window.__NLE__ = window.__NLE__ || {});
 
   /**
@@ -25,7 +25,7 @@
       a.href = url;
       a.download = filename;
       a.style.display = 'none';
-      
+
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -88,4 +88,4 @@
   };
 
   NLE.log('Export utils module loaded');
-})()();
+})();

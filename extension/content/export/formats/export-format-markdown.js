@@ -6,7 +6,7 @@
 
 (function () {
   'use strict';
-  
+
   const NLE = (window.__NLE__ = window.__NLE__ || {});
   const { t } = NLE.exportI18n;
   const { downloadFile } = NLE.exportUtils;
@@ -159,15 +159,26 @@
     const { title, html, timestamp } = content;
     const formattedDate = timestamp.toLocaleString();
 
-    const markdown = `# ${title}\n\n*${t('exportedFrom')} ${formattedDate}*\n\n---\n\n${htmlToMarkdown(html)}`;
+    const markdown = `# ${title}\n\n---\n\n${htmlToMarkdown(html)}`;
 
     downloadFile(`${title}.md`, markdown, 'text/markdown;charset=utf-8');
     NLE.log('Exported to Markdown:', title);
   }
 
+  /**
+   * Get preview content
+   * @param {{ title: string, html: string, timestamp: Date }} content
+   * @param {Object} options
+   * @returns {string} Preview text
+   */
+  function getPreview(content, options) {
+    return htmlToMarkdown(content.html);
+  }
+
   // Export module
   NLE.exportFormatMarkdown = {
     export: exportToMarkdown,
+    getPreview: getPreview,
     name: 'Markdown',
     extension: 'md',
     icon: 'description',

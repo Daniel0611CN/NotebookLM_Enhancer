@@ -4,6 +4,8 @@
 .nle-export-button {
   position: relative;
   margin-right: 8px;
+  margin-left: auto;
+  /* Push to the right */
   transition: opacity 0.2s ease;
 }
 
@@ -68,8 +70,13 @@
 }
 
 @keyframes nle-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .nle-export-preview-modal {
@@ -85,11 +92,12 @@
 }
 
 @keyframes nle-slide-up {
-  from { 
+  from {
     opacity: 0;
     transform: translateY(20px) scale(0.95);
   }
-  to { 
+
+  to {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
@@ -198,7 +206,7 @@
   margin-bottom: 20px;
 }
 
-.nle-export-preview-modal .format-section > label {
+.nle-export-preview-modal .format-section>label {
   display: block;
   font-size: 12px;
   font-weight: 500;
@@ -295,12 +303,12 @@
   border-color: var(--gm3-sys-color-primary, #1a73e8);
 }
 
-.nle-export-preview-modal .checkbox-label input:checked + .checkmark {
+.nle-export-preview-modal .checkbox-label input:checked+.checkmark {
   background: var(--gm3-sys-color-primary, #1a73e8);
   border-color: var(--gm3-sys-color-primary, #1a73e8);
 }
 
-.nle-export-preview-modal .checkbox-label input:checked + .checkmark::after {
+.nle-export-preview-modal .checkbox-label input:checked+.checkmark::after {
   content: '';
   position: absolute;
   left: 5px;
@@ -391,56 +399,56 @@
   .nle-export-preview-modal {
     background: var(--gm3-sys-color-surface, #1f1f1f);
   }
-  
+
   .nle-export-preview-modal .preview-header h2 {
     color: var(--gm3-sys-color-on-surface, #e0e0e0);
   }
-  
+
   .nle-export-preview-modal .close-btn {
     color: var(--gm3-sys-color-on-surface-variant, #a0a0a0);
   }
-  
+
   .nle-export-preview-modal .close-btn:hover {
     background: var(--gm3-sys-color-surface-container-highest, #2a2a2a);
   }
-  
+
   .nle-export-preview-modal .note-info {
     background: var(--gm3-sys-color-surface-container, #2a2a2a);
   }
-  
+
   .nle-export-preview-modal .note-title {
     color: var(--gm3-sys-color-on-surface, #e0e0e0);
   }
-  
+
   .nle-export-preview-modal .content-preview {
     background: var(--gm3-sys-color-surface-container, #2a2a2a);
     color: var(--gm3-sys-color-on-surface, #e0e0e0);
     border-color: var(--gm3-sys-color-outline-variant, #333);
   }
-  
+
   .nle-export-preview-modal .format-btn {
     background: var(--gm3-sys-color-surface, #1f1f1f);
     border-color: var(--gm3-sys-color-outline-variant, #333);
   }
-  
+
   .nle-export-preview-modal .format-btn:hover {
     background: var(--gm3-sys-color-surface-container-highest, #2a2a2a);
   }
-  
+
   .nle-export-preview-modal .format-btn .format-label {
     color: var(--gm3-sys-color-on-surface, #e0e0e0);
   }
-  
+
   .nle-export-preview-modal .checkbox-label {
     color: var(--gm3-sys-color-on-surface, #e0e0e0);
   }
-  
+
   .nle-export-preview-modal .btn-secondary {
     background: var(--gm3-sys-color-surface, #1f1f1f);
     border-color: var(--gm3-sys-color-outline-variant, #333);
     color: var(--gm3-sys-color-on-surface, #e0e0e0);
   }
-  
+
   .nle-export-preview-modal .btn-secondary:hover {
     background: var(--gm3-sys-color-surface-container-highest, #2a2a2a);
   }

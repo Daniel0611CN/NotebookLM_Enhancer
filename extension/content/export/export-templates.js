@@ -71,12 +71,6 @@
             ${t('includeImages')}
           </label>
 
-          <label class="checkbox-label" title="${t('includeCitationsTooltip') || 'Include source citations and references'}">
-            <input type="checkbox" id="opt-citations">
-            <span class="checkmark"></span>
-            ${t('includeCitations')}
-          </label>
-
           <label class="checkbox-label pdf-only" style="display: ${initialFormat === 'pdf' ? 'flex' : 'none'}" title="${t('pageNumbersTooltip') || 'Add page numbers at the bottom of each page (PDF only)'}">
             <input type="checkbox" id="opt-pagenumbers" checked>
             <span class="checkmark"></span>
@@ -85,7 +79,6 @@
         </div>
 
         <div class="size-estimate">
-          <span class="material-symbols-outlined">save</span>
           <span id="size-text">${t('calculating')}</span>
         </div>
 

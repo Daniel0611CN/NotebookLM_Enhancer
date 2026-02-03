@@ -6,7 +6,7 @@
 
 (function () {
   'use strict';
-  
+
   const NLE = (window.__NLE__ = window.__NLE__ || {});
   const { exportButtonId } = NLE.constants;
   const { t } = NLE.exportI18n;
@@ -69,7 +69,7 @@
    */
   function injectExportButton() {
     const { getNoteViewHeader, getCollapseButton, isNoteViewOpen, isExportButtonInjected } = NLE.exportDetection;
-    
+
     // Check if note view is open
     if (!isNoteViewOpen()) {
       removeExportButton();

@@ -6,7 +6,7 @@
 
 (function () {
   'use strict';
-  
+
   const NLE = (window.__NLE__ = window.__NLE__ || {});
   const { loadPdfLibraries } = NLE.exportLibraries;
   const { t } = NLE.exportI18n;
@@ -15,11 +15,14 @@
   /**
    * Export content to PDF using pdfmake
    * @param {{ title: string, html: string, timestamp: Date }} content - The content to export
+   * @param {{ includeImages: boolean, includeCitations: boolean, addPageNumbers: boolean }} options - Export options
    * @returns {Promise<void>}
    */
-  async function exportToPDF(content) {
-    const { title, html, timestamp } = content;
+  async function exportToPDF(content, options = {}) {
+    const { title, timestamp } = content;
+    let { html } = content;
     const formattedDate = timestamp.toLocaleString();
+    const { includeImages = true, includeCitations = true, addPageNumbers = false } = options;
 
     // Load libraries if needed
     const loaded = await loadPdfLibraries();
@@ -35,6 +38,22 @@
         throw new Error('PDF libraries not available');
       }
 
+      // Pre-process HTML based on options
+      if (!includeImages) {
+        html = html.replace(/<img[^>]*>/gi, '');
+      }
+
+      if (!includeCitations) {
+        // Remove citation elements (assuming they have specific classes or structure)
+        // Common pattern for NotebookLM citations might need adjustment if class names change
+        // For now, removing typical citation like <sup> or .citation class if known
+        // Since we don't have the exact DOM structure of a citation here without the DOM, 
+        // we'll rely on the extraction cleaning usually. 
+        // If extraction preserves them as <sup> or specific spans:
+        html = html.replace(/<sup[^>]*>.*?<\/sup>/gi, ''); // Generic source removal
+        html = html.replace(/<a[^>]*class="source-citation"[^>]*>.*?<\/a>/gi, '');
+      }
+
       // Convert HTML to pdfmake format
       const pdfContent = window.htmlToPdfmake(html, {
         tableAutoSize: true,
@@ -43,8 +62,8 @@
           strong: { bold: true },
           i: { italics: true },
           em: { italics: true },
-          code: { font: 'Courier', fontSize: 10, background: '#f5f5f5' },
-          pre: { font: 'Courier', fontSize: 9, background: '#f5f5f5', margin: [0, 5, 0, 5] },
+          code: { fontSize: 10, background: '#f5f5f5' },
+          pre: { fontSize: 9, background: '#f5f5f5', margin: [0, 5, 0, 5] },
         },
       });
 
@@ -55,9 +74,19 @@
           creator: 'NotebookLM Enhancer',
           producer: 'pdfmake',
         },
+        footer: function (currentPage, pageCount) {
+          if (addPageNumbers) {
+            return {
+              text: `${currentPage} / ${pageCount}`,
+              alignment: 'center',
+              fontSize: 10,
+              margin: [0, 10, 0, 0]
+            };
+          }
+          return null;
+        },
         content: [
           { text: title, style: 'header' },
-          { text: `${t('exportedFrom')} ${formattedDate}`, style: 'metadata' },
           { text: '', margin: [0, 10, 0, 0] }, // Spacer
           ...pdfContent,
         ],
@@ -81,8 +110,8 @@
           'html-h2': { fontSize: 18, bold: true, margin: [0, 12, 0, 5] },
           'html-h3': { fontSize: 16, bold: true, margin: [0, 10, 0, 5] },
           'html-h4': { fontSize: 14, bold: true, margin: [0, 8, 0, 5] },
-          'html-code': { font: 'Courier', fontSize: 10, background: '#f5f5f5' },
-          'html-pre': { font: 'Courier', fontSize: 9, background: '#f5f5f5' },
+          'html-code': { fontSize: 10, background: '#f5f5f5' },
+          'html-pre': { fontSize: 9, background: '#f5f5f5' },
         },
         pageMargins: [40, 40, 40, 40],
       };
@@ -97,9 +126,23 @@
     }
   }
 
+  /**
+   * Get preview content (Fallback to text for PDF)
+   * @param {{ title: string, text: string, timestamp: Date }} content
+   * @param {Object} options
+   * @returns {string} Preview text
+   */
+  async function getPreview(content, options) {
+    const { title, text, timestamp } = content;
+    // PDF content is based on HTML, but for text preview locally, plain text is best.
+    // Alternatively we could return "PDF Document\nTitle: " + title ...
+    return text.trim();
+  }
+
   // Export module
   NLE.exportFormatPDF = {
     export: exportToPDF,
+    getPreview: getPreview,
     name: 'PDF',
     extension: 'pdf',
     icon: 'picture_as_pdf',

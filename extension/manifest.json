@@ -39,6 +39,9 @@
         "content/nle-drag.js",
         "content/nle-messaging.js",
         "content/nle-observers.js",
+        "lib/pdfmake.min.js",
+        "lib/vfs_fonts.min.js",
+        "lib/html-to-pdfmake.min.js",
         "content/export/export-i18n.js",
         "content/export/export-utils.js",
         "content/export/export-libraries.js",
@@ -65,10 +68,7 @@
         "*.css",
         "assets/**",
         "folder.png",
-        "content/styles.css",
-        "lib/pdfmake.min.js",
-        "lib/vfs_fonts.min.js",
-        "lib/html-to-pdfmake.min.js"
+        "content/styles.css"
       ],
       "matches": [
         "https://notebooklm.google.com/*"

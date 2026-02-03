@@ -6,7 +6,7 @@
 
 (function () {
   'use strict';
-  
+
   const NLE = (window.__NLE__ = window.__NLE__ || {});
   const { selectors } = NLE.constants;
 
@@ -69,11 +69,9 @@
   function cleanHtmlForExport(element) {
     // Remove citation buttons and UI elements
     const removeSelectors = [
-      'button.citation-marker',
       'button.xap-inline-dialog',
       'sources-carousel-inline',
       'sources-carousel',
-      'source-footnote',
       '[jslog]',
       '.mat-ripple',
       '.mat-focus-indicator',

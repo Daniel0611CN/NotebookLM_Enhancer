@@ -6,7 +6,7 @@
 
 (function () {
   'use strict';
-  
+
   const NLE = (window.__NLE__ = window.__NLE__ || {});
   const { t } = NLE.exportI18n;
   const { downloadFile } = NLE.exportUtils;
@@ -26,11 +26,16 @@
    * Export content to HTML file
    * @param {{ title: string, html: string, timestamp: Date }} content - The content to export
    */
-  function exportToHTML(content) {
+  /**
+   * Generate full HTML string
+   * @param {{ title: string, html: string, timestamp: Date }} content
+   * @returns {string} Full HTML
+   */
+  function generateHTML(content) {
     const { title, html, timestamp } = content;
     const formattedDate = timestamp.toLocaleString();
 
-    const fullHTML = `<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -160,18 +165,35 @@
 </head>
 <body>
   <h1>${escapeHtml(title)}</h1>
-  <div class="metadata">${escapeHtml(t('exportedFrom'))} ${escapeHtml(formattedDate)}</div>
   <div class="content">${html}</div>
 </body>
 </html>`;
+  }
 
-    downloadFile(`${title}.html`, fullHTML, 'text/html;charset=utf-8');
-    NLE.log('Exported to HTML:', title);
+  /**
+   * Export content to HTML file
+   * @param {{ title: string, html: string, timestamp: Date }} content - The content to export
+   */
+  function exportToHTML(content) {
+    const fullHTML = generateHTML(content);
+    downloadFile(`${content.title}.html`, fullHTML, 'text/html;charset=utf-8');
+    NLE.log('Exported to HTML:', content.title);
+  }
+
+  /**
+   * Get preview content
+   * @param {{ title: string, html: string, timestamp: Date }} content
+   * @param {Object} options
+   * @returns {string} Preview text
+   */
+  function getPreview(content, options) {
+    return generateHTML(content);
   }
 
   // Export module
   NLE.exportFormatHTML = {
     export: exportToHTML,
+    getPreview: getPreview,
     name: 'HTML',
     extension: 'html',
     icon: 'code',
