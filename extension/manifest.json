@@ -39,7 +39,17 @@
         "content/nle-drag.js",
         "content/nle-messaging.js",
         "content/nle-observers.js",
-        "content/nle-export.js",
+        "content/export/export-i18n.js",
+        "content/export/export-utils.js",
+        "content/export/export-libraries.js",
+        "content/export/export-detection.js",
+        "content/export/export-extraction.js",
+        "content/export/formats/export-format-txt.js",
+        "content/export/formats/export-format-html.js",
+        "content/export/formats/export-format-markdown.js",
+        "content/export/formats/export-format-pdf.js",
+        "content/export/export-ui.js",
+        "content/export/export-core.js",
         "content/main.js"
       ],
       "run_at": "document_idle"
@@ -53,6 +63,7 @@
         "*.css",
         "assets/**",
         "folder.png",
+        "content/styles.css",
         "lib/pdfmake.min.js",
         "lib/vfs_fonts.min.js",
         "lib/html-to-pdfmake.min.js"

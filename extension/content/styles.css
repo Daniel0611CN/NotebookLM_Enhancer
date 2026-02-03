@@ -1,0 +1,153 @@
+/* Export System Styles - NotebookLM Enhancer */
+
+/* Export Button Styles */
+.nle-export-button {
+  position: relative;
+  margin-right: 8px;
+  transition: opacity 0.2s ease;
+}
+
+.nle-export-button:hover {
+  opacity: 0.8;
+}
+
+.nle-export-button:active {
+  opacity: 0.6;
+}
+
+/* Export Menu Container */
+.nle-export-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  z-index: 10000;
+  background: var(--gm3-sys-color-surface-container, #fff);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  min-width: 180px;
+  overflow: hidden;
+  display: none;
+  animation: nle-menu-appear 0.15s ease-out;
+}
+
+@keyframes nle-menu-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Export Menu Item */
+.nle-export-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--gm3-sys-color-on-surface, #1f1f1f);
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+
+.nle-export-menu-item:hover {
+  background-color: var(--gm3-sys-color-surface-container-highest, #f0f0f0);
+}
+
+.nle-export-menu-item:active {
+  background-color: var(--gm3-sys-color-surface-container-high, #e0e0e0);
+}
+
+.nle-export-menu-item .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--gm3-sys-color-on-surface-variant, #444);
+  flex-shrink: 0;
+}
+
+/* Export Menu Divider */
+.nle-export-menu-divider {
+  height: 1px;
+  background: var(--gm3-sys-color-outline-variant, #e0e0e0);
+  margin: 4px 0;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .nle-export-menu {
+    background: var(--gm3-sys-color-surface-container, #1f1f1f);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+  
+  .nle-export-menu-item {
+    color: var(--gm3-sys-color-on-surface, #e0e0e0);
+  }
+  
+  .nle-export-menu-item .material-symbols-outlined {
+    color: var(--gm3-sys-color-on-surface-variant, #a0a0a0);
+  }
+  
+  .nle-export-menu-item:hover {
+    background-color: var(--gm3-sys-color-surface-container-highest, #2a2a2a);
+  }
+  
+  .nle-export-menu-divider {
+    background: var(--gm3-sys-color-outline-variant, #333);
+  }
+}
+
+/* Loading State */
+.nle-export-loading {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.nle-export-loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin-top: -8px;
+  margin-left: -8px;
+  border: 2px solid var(--gm3-sys-color-primary, #1a73e8);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: nle-spin 1s linear infinite;
+}
+
+@keyframes nle-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Focus States for Accessibility */
+.nle-export-menu-item:focus-visible {
+  outline: 2px solid var(--gm3-sys-color-primary, #1a73e8);
+  outline-offset: -2px;
+}
+
+.nle-export-button:focus-visible {
+  outline: 2px solid var(--gm3-sys-color-primary, #1a73e8);
+  outline-offset: 2px;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 768px) {
+  .nle-export-menu {
+    min-width: 160px;
+  }
+  
+  .nle-export-menu-item {
+    padding: 14px 16px;
+  }
+}
