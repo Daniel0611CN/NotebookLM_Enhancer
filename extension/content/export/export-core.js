@@ -7,9 +7,9 @@
 
 (function () {
   'use strict';
-  
+
   const NLE = (window.__NLE__ = window.__NLE__ || {});
-  
+
   // Track observer
   let exportObserver = null;
   let exportCheckTimeout = null;
@@ -21,16 +21,16 @@
    */
   async function handleExportRequest(event) {
     const { format } = event.detail;
-    
+
     NLE.log('Export requested:', format);
-    
+
     // Set loading state
     NLE.exportUI.setButtonLoading(true);
-    
+
     try {
       // Extract content
       const content = NLE.exportExtraction.extractNoteContent();
-      
+
       if (!content) {
         console.error('[NLE Export] No content available for export');
         return;
@@ -40,7 +40,7 @@
 
       // Execute export based on format
       const formatModule = getFormatModule(format);
-      
+
       if (formatModule && typeof formatModule.export === 'function') {
         await formatModule.export(content);
       } else {
@@ -66,17 +66,28 @@
       'html': NLE.exportFormatHTML,
       'txt': NLE.exportFormatTXT,
     };
-    
+
     return formatMap[formatId] || null;
   }
 
   /**
    * Check and inject export button
    */
+  /**
+   * Check and inject export button
+   */
   function checkAndInjectButton() {
+    // If extension is disabled, ensure button is removed and do nothing
+    if (NLE.state && NLE.state.enabled === false) {
+      if (NLE.exportUI.removeExportButton) {
+        NLE.exportUI.removeExportButton();
+      }
+      return;
+    }
+
     // Clear any pending check
     clearTimeout(exportCheckTimeout);
-    
+
     // Debounce the injection
     exportCheckTimeout = setTimeout(() => {
       NLE.exportUI.injectExportButton();
@@ -89,7 +100,7 @@
   function setupObserver() {
     // Initial check with delay to let page settle
     setTimeout(() => {
-      NLE.exportUI.injectExportButton();
+      checkAndInjectButton();
     }, 500);
 
     // Create observer for note view changes
@@ -106,6 +117,23 @@
     // Listen for custom export events
     document.addEventListener('nle-export-request', handleExportRequest);
 
+    // Listen for toggle events from popup
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message.type === 'NLE_TOGGLE_STATE') {
+        NLE.log('Export system received toggle state:', message.enabled);
+
+        if (NLE.state) {
+          NLE.state.enabled = message.enabled;
+        }
+
+        if (message.enabled) {
+          checkAndInjectButton();
+        } else {
+          NLE.exportUI.removeExportButton();
+        }
+      }
+    });
+
     NLE.log('Export system observer setup complete');
   }
 
@@ -119,15 +147,15 @@
     link.id = 'nle-export-styles';
     link.rel = 'stylesheet';
     link.href = chrome.runtime.getURL('content/styles.css');
-    
+
     link.onload = () => {
       NLE.log('Export styles loaded');
     };
-    
+
     link.onerror = () => {
       console.error('[NLE Export] Failed to load styles');
     };
-    
+
     document.head.appendChild(link);
   }
 
@@ -192,11 +220,11 @@
     }
 
     clearTimeout(exportCheckTimeout);
-    
+
     NLE.exportUI.removeExportButton();
-    
+
     document.removeEventListener('nle-export-request', handleExportRequest);
-    
+
     isInitialized = false;
     NLE.log('Export system cleanup complete');
   }

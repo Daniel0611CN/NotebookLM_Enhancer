@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,7 +15,7 @@
       background: #fff;
       color: #333;
     }
-    
+
     .header {
       display: flex;
       align-items: center;
@@ -23,19 +24,19 @@
       padding-bottom: 12px;
       border-bottom: 1px solid #e0e0e0;
     }
-    
+
     .icon {
       width: 32px;
       height: 32px;
     }
-    
+
     h1 {
       margin: 0;
       font-size: 16px;
       font-weight: 600;
       color: #1a1a1a;
     }
-    
+
     .toggle-container {
       display: flex;
       align-items: center;
@@ -45,12 +46,12 @@
       border-radius: 8px;
       margin-bottom: 16px;
     }
-    
+
     .toggle-label {
       font-weight: 500;
       color: #374151;
     }
-    
+
     .toggle-button {
       position: relative;
       width: 50px;
@@ -61,11 +62,11 @@
       cursor: pointer;
       transition: background 0.3s;
     }
-    
+
     .toggle-button.active {
       background: #22c55e;
     }
-    
+
     .toggle-button::after {
       content: '';
       position: absolute;
@@ -76,13 +77,13 @@
       background: white;
       border-radius: 50%;
       transition: transform 0.3s;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     }
-    
+
     .toggle-button.active::after {
       transform: translateX(24px);
     }
-    
+
     .status {
       display: flex;
       align-items: center;
@@ -93,11 +94,11 @@
       margin-bottom: 16px;
       font-size: 13px;
     }
-    
+
     .status.inactive {
       background: #fef3f2;
     }
-    
+
     .status-dot {
       width: 8px;
       height: 8px;
@@ -105,37 +106,44 @@
       border-radius: 50%;
       animation: pulse 2s infinite;
     }
-    
+
     .status.inactive .status-dot {
       background: #ef4444;
       animation: none;
     }
-    
+
     @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
     }
-    
+
     .shortcuts {
       background: #f9fafb;
       padding: 12px;
       border-radius: 6px;
       font-size: 12px;
     }
-    
+
     .shortcuts h3 {
       margin: 0 0 8px 0;
       font-size: 13px;
       color: #374151;
     }
-    
+
     .shortcut-item {
       display: flex;
       justify-content: space-between;
       margin-bottom: 6px;
       color: #6b7280;
     }
-    
+
     .footer {
       margin-top: 16px;
       padding-top: 12px;
@@ -144,33 +152,34 @@
       color: #9ca3af;
       text-align: center;
     }
-    
+
     .hidden {
       display: none;
     }
   </style>
 </head>
+
 <body>
   <div class="header">
-    <img src="folder.png" alt="Logo" class="icon">
+    <img src="../assets/folder.png" alt="Logo" class="icon">
     <h1>NotebookLM Enhancer</h1>
   </div>
-  
+
   <div class="toggle-container">
     <span class="toggle-label">Extension</span>
     <button id="toggleBtn" class="toggle-button active" title="Click to toggle"></button>
   </div>
-  
+
   <div id="statusActive" class="status">
     <div class="status-dot"></div>
     <span>Active on notebooklm.google.com</span>
   </div>
-  
+
   <div id="statusInactive" class="status inactive hidden">
     <div class="status-dot"></div>
     <span>Paused - refresh page to apply</span>
   </div>
-  
+
   <div id="features" class="shortcuts">
     <h3>Features:</h3>
     <div class="shortcut-item">
@@ -185,12 +194,16 @@
     <div class="shortcut-item">
       <span>Dark mode support</span>
     </div>
+    <div class="shortcut-item">
+      <span>Export notes (PDF, MD, HTML)</span>
+    </div>
   </div>
-  
+
   <div class="footer">
     v0.0.1 • Folders per notebook
   </div>
-  
+
   <script src="popup.js"></script>
 </body>
+
 </html>
