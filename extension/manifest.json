@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "NotebookLM Enhancer",
   "version": "0.0.1",
-  "description": "Adds folders and enhancements to NotebookLM sidebar.",
+  "description": "Adds folders and enhancements to NotebookLM sidebar Cesar Castillo.",
   "icons": {
     "16": "assets/folder.png",
     "32": "assets/folder.png",
