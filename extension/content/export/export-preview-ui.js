@@ -14,6 +14,7 @@
   // Preview modal state
   let previewModal = null;
   let currentExportData = null;
+  let modalAbortController = null;
   const MODAL_ID = 'nle-export-preview-modal';
 
   /**
@@ -144,12 +145,18 @@
   function setupListeners() {
     if (!previewModal) return;
 
+    if (modalAbortController) {
+      modalAbortController.abort();
+    }
+    modalAbortController = new AbortController();
+    const { signal } = modalAbortController;
+
     // Close actions
-    previewModal.querySelector('.close-btn')?.addEventListener('click', closeModal);
-    previewModal.querySelector('#btn-cancel')?.addEventListener('click', closeModal);
+    previewModal.querySelector('.close-btn')?.addEventListener('click', closeModal, { signal });
+    previewModal.querySelector('#btn-cancel')?.addEventListener('click', closeModal, { signal });
     previewModal.addEventListener('click', (e) => {
       if (e.target === previewModal) closeModal();
-    });
+    }, { signal });
 
     // Format selection
     previewModal.querySelectorAll('.format-btn').forEach(btn => {
@@ -159,16 +166,16 @@
         const format = btn.dataset.format;
         togglePdfOptions(format);
         updateUI();
-      });
+      }, { signal });
     });
 
     // Options changes
     previewModal.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-      checkbox.addEventListener('change', updateUI);
+      checkbox.addEventListener('change', updateUI, { signal });
     });
 
     // Export button
-    previewModal.querySelector('#btn-export')?.addEventListener('click', executeExport);
+    previewModal.querySelector('#btn-export')?.addEventListener('click', executeExport, { signal });
   }
 
   /**
@@ -245,6 +252,10 @@
    * Close modal
    */
   function closeModal() {
+    if (modalAbortController) {
+      modalAbortController.abort();
+      modalAbortController = null;
+    }
     if (previewModal) {
       previewModal.remove();
       previewModal = null;

@@ -80,6 +80,11 @@
     const studioPanel = findStudioPanel();
     if (!studioPanel) return;
 
+    if (NLE.heightObserver) {
+      NLE.heightObserver.disconnect();
+      NLE.heightObserver = null;
+    }
+
     function updateHeight() {
       const rect = studioPanel.getBoundingClientRect();
       const height = Math.floor(rect.height);
@@ -88,12 +93,8 @@
 
     updateHeight();
 
-    const observer = new ResizeObserver(() => {
-      updateHeight();
-    });
-
+    const observer = new ResizeObserver(updateHeight);
     observer.observe(studioPanel);
-    NLE.observers = NLE.observers || [];
-    NLE.observers.push(observer);
+    NLE.heightObserver = observer;
   }
 })();

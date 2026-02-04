@@ -25,6 +25,8 @@
 
     ensureScheduled: false,
 
+    frameLoadHandler: null,
+
     // Extension enabled state (can be toggled from popup)
     enabled: true,
   };

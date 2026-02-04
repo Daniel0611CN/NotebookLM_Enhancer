@@ -60,6 +60,10 @@
     state.listObserver?.disconnect?.();
     state.listObserver = null;
     state.listEl = null;
+    if (state.frameLoadHandler && state.frameEl) {
+      state.frameEl.removeEventListener('load', state.frameLoadHandler);
+    }
+    state.frameLoadHandler = null;
 
     if (state.nativeListEl) {
       setNativeListHidden(state.nativeListEl, false);
@@ -119,10 +123,14 @@
       queueMicrotask(emit);
     };
 
-    frameEl.addEventListener('load', () => {
+    if (state.frameLoadHandler && state.frameEl) {
+      state.frameEl.removeEventListener('load', state.frameLoadHandler);
+    }
+    state.frameLoadHandler = () => {
       emitActiveNotebook();
       emit();
-    });
+    };
+    frameEl.addEventListener('load', state.frameLoadHandler);
     emit();
 
     state.listObserver = new MutationObserver(scheduleEmit);

@@ -18,6 +18,30 @@
     }
   }
 
+  // Track if extension context is valid
+  let contextInvalidated = false;
+
+  let urlPollInterval = null;
+  let lastUrl = location.href;
+
+  function startUrlPolling() {
+    if (urlPollInterval) return;
+    lastUrl = location.href;
+    urlPollInterval = setInterval(() => {
+      if (location.href !== lastUrl) {
+        lastUrl = location.href;
+        NLE.log('URL changed (polling detected):', lastUrl);
+        NLE.scheduleEnsureMounted();
+      }
+    }, 500);
+  }
+
+  function stopUrlPolling() {
+    if (!urlPollInterval) return;
+    clearInterval(urlPollInterval);
+    urlPollInterval = null;
+  }
+
   // Load initial enabled state from storage
   async function loadEnabledState() {
     try {
@@ -38,11 +62,13 @@
     // After loading state, schedule initial mount
     if (!contextInvalidated) {
       NLE.scheduleEnsureMounted();
+      if (state.enabled) {
+        startUrlPolling();
+      } else {
+        stopUrlPolling();
+      }
     }
   }
-
-  // Track if extension context is valid
-  let contextInvalidated = false;
 
   // Listen for toggle messages from popup
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -52,6 +78,11 @@
       
       // Re-run ensureMounted to apply changes immediately
       NLE.scheduleEnsureMounted();
+      if (state.enabled) {
+        startUrlPolling();
+      } else {
+        stopUrlPolling();
+      }
       
       sendResponse({ success: true });
     }
@@ -66,14 +97,7 @@
   window.addEventListener('hashchange', NLE.scheduleEnsureMounted);
   
   // Poll for URL changes as a fallback (SPA navigation might not trigger popstate)
-  let lastUrl = location.href;
-  setInterval(() => {
-    if (location.href !== lastUrl) {
-      lastUrl = location.href;
-      NLE.log('URL changed (polling detected):', lastUrl);
-      NLE.scheduleEnsureMounted();
-    }
-  }, 500);
+  startUrlPolling();
   
   try {
     const origPushState = history.pushState;
