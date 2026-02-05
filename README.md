@@ -186,8 +186,18 @@ This isn't a simple content script that adds a few buttons. It's a full micro-fr
    - Open Chrome and navigate to `chrome://extensions/`
    - Enable "Developer mode" (toggle in top right)
    - Click "Load unpacked"
-   - Select the folder: `dist/extension/browser/`
-   - The extension icon should appear in your toolbar!
+- Select the folder: `dist/extension/browser/`
+- The extension icon should appear in your toolbar!
+
+**Windows users (prebuilt ZIP)**
+
+- If you encounter build/compilation issues on Windows, a prebuilt, ready-to-load extension archive is included in the repository root: `NotebookLM_Enhancer/NotebookLM_Extension.zip`.
+- To use it:
+  1. Extract `NotebookLM_Extension.zip` to a folder (for example `NotebookLM_Extension/`).
+  2. Open `chrome://extensions/` in Chrome, enable Developer mode, click "Load unpacked" and select the extracted folder (the folder must contain `manifest.json` and the extension files).
+  3. The extension should load without building from source.
+
+- If you prefer to rebuild on Windows, consider using WSL2, Git Bash, or a Linux container to run `npm install` and `npm run build:ext` (Node.js 18+ and npm 9+ recommended).
 
 5. **Use it:**
    - Navigate to [notebooklm.google.com](https://notebooklm.google.com)
