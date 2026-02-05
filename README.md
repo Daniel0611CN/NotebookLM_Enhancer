@@ -1,8 +1,6 @@
 # NotebookLM Enhancer
 **GitHub Copilot CLI Challenge**
 
-To test the extension locally during the GitHub Copilot CLI Challenge, build the extension with `npm run build:ext` and load the unpacked extension from `dist/extension/browser/` via `chrome://extensions/` (enable Developer mode → "Load unpacked").
-
 
 [![Chrome Extension](https://img.shields.io/badge/Chrome%20Extension-MV3-blue.svg)](https://developer.chrome.com/docs/extensions/mv3/intro/)
 [![Angular](https://img.shields.io/badge/Angular-19+-red.svg)](https://angular.io/)
