@@ -67,6 +67,98 @@
     return false;
   }
 
+  /**
+   * Wait for the delete confirmation dialog to appear
+   * @param {number} timeoutMs
+   * @returns {Promise<HTMLElement|null>}
+   */
+  function waitForDeleteConfirmationDialog(timeoutMs) {
+    return new Promise((resolve) => {
+      // Check if dialog already exists
+      const existing = document.querySelector('mat-dialog-container, .mat-mdc-dialog-container, delete-dialog');
+      if (existing) return resolve(existing);
+
+      // Observe for dialog appearance
+      const obs = new MutationObserver(() => {
+        const dialog = document.querySelector('mat-dialog-container, .mat-mdc-dialog-container, delete-dialog');
+        if (dialog) {
+          obs.disconnect();
+          resolve(dialog);
+        }
+      });
+
+      obs.observe(document.body, { childList: true, subtree: true });
+
+      setTimeout(() => {
+        obs.disconnect();
+        resolve(document.querySelector('mat-dialog-container, .mat-mdc-dialog-container, delete-dialog'));
+      }, timeoutMs);
+    });
+  }
+
+  /**
+   * Click the confirm button in the delete dialog
+   * @param {HTMLElement} dialog
+   * @returns {boolean}
+   */
+  function clickConfirmDeleteInDialog(dialog) {
+    // Try multiple selectors for the confirm button
+    const selectors = [
+      'button[type="submit"]',
+      'button.submit',
+      'button[color="primary"]',
+      'button[class*="primary"]',
+      'button:not(.cancel)',
+      'button[aria-label*="eliminar" i]',
+      'button[aria-label*="delete" i]',
+      'button'
+    ];
+
+    for (const selector of selectors) {
+      const buttons = dialog.querySelectorAll(selector);
+      for (const btn of buttons) {
+        const text = normalizeText(btn.textContent);
+        // Look for "Eliminar" or "Delete" text, avoid "Cancelar"
+        if ((text.includes('eliminar') || text.includes('delete')) && !text.includes('cancel')) {
+          btn.click();
+          return true;
+        }
+      }
+    }
+
+    // Fallback: click the second button (usually the confirm button in dialogs)
+    const allButtons = dialog.querySelectorAll('button');
+    if (allButtons.length >= 2) {
+      allButtons[allButtons.length - 1].click();
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Wait for dialog to close
+   * @param {number} timeoutMs
+   * @returns {Promise<void>}
+   */
+  function waitForDialogToClose(timeoutMs) {
+    return new Promise((resolve) => {
+      const checkInterval = 100;
+      const maxChecks = timeoutMs / checkInterval;
+      let checks = 0;
+
+      const interval = setInterval(() => {
+        const dialog = document.querySelector('mat-dialog-container, .mat-mdc-dialog-container, delete-dialog, .cdk-overlay-pane');
+        checks++;
+
+        if (!dialog || checks >= maxChecks) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, checkInterval);
+    });
+  }
+
   NLE.postNotebooks = function postNotebooks(frameEl, notebooks) {
     if (!frameEl?.contentWindow) return;
 
@@ -191,13 +283,55 @@
   async function deleteNativeNotebookByIndex(index) {
     const ok = openNativeNotebookMenuByIndex(index);
     if (!ok) return false;
-    return await clickDeleteInOpenMenu();
+    
+    // Click delete in menu
+    const menuClicked = await clickDeleteInOpenMenu();
+    if (!menuClicked) return false;
+    
+    // Wait for confirmation dialog and confirm
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const dialog = await waitForDeleteConfirmationDialog(1000);
+    if (!dialog) {
+      NLE.log('No delete confirmation dialog found');
+      return false;
+    }
+    
+    const confirmed = clickConfirmDeleteInDialog(dialog);
+    if (!confirmed) {
+      NLE.log('Could not click confirm button in dialog');
+      return false;
+    }
+    
+    // Wait for dialog to close
+    await waitForDialogToClose(2000);
+    return true;
   }
 
   async function deleteNativeNotebookByTitle(title) {
     const ok = openNativeNotebookMenuByTitle(title);
     if (!ok) return false;
-    return await clickDeleteInOpenMenu();
+    
+    // Click delete in menu
+    const menuClicked = await clickDeleteInOpenMenu();
+    if (!menuClicked) return false;
+    
+    // Wait for confirmation dialog and confirm
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const dialog = await waitForDeleteConfirmationDialog(1000);
+    if (!dialog) {
+      NLE.log('No delete confirmation dialog found');
+      return false;
+    }
+    
+    const confirmed = clickConfirmDeleteInDialog(dialog);
+    if (!confirmed) {
+      NLE.log('Could not click confirm button in dialog');
+      return false;
+    }
+    
+    // Wait for dialog to close
+    await waitForDialogToClose(2000);
+    return true;
   }
 
   /**
