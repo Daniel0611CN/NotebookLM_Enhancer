@@ -32,12 +32,13 @@
 ![Drag and Drop Demo](src/others/drang_and_dropgif.gif)
 *Seamlessly move notes between folders*
 
-
+### Batch Delete
+![Batch delete](src/others/batch_delete.gif)
+*Quick delete system*
 
 ### Export system
 ![Export your notes](src/others/Note_export.png)
 *Easy to export your notes*
-
 ---
 
 ## The Problem
