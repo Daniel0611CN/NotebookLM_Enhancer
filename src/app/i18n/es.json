@@ -15,6 +15,7 @@
     "drag": "Arrastrar",
     "accept": "Aceptar",
     "cancel": "Cancelar",
+    "deleteSelected": "Eliminar",
     "yes": "Sí"
   },
   "states": {
@@ -55,7 +56,8 @@
     "collapseInbox": "Colapsar Inbox",
     "language": "Cambiar Idioma",
     "theme": "Cambiar Tema",
-    "addNote": "Añadir nota"
+    "addNote": "Añadir nota",
+    "batchMode": "Seleccionar varias notas"
   },
   "aria": {
     "expandInbox": "Expandir Inbox",
@@ -64,6 +66,11 @@
     "collapseFolder": "Colapsar carpeta",
     "options": "Opciones",
     "drag": "Arrastrar"
+  },
+  "batchDelete": {
+    "title": "¿Eliminar notas?",
+    "selected": "seleccionadas",
+    "multipleMessage": "¿Seguro que quieres eliminar {count} notas? Esta acción no se puede deshacer."
   },
   "export": {
     "preview": {

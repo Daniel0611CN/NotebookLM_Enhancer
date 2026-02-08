@@ -1,31 +1,54 @@
 <div
   class="group relative py-0.5"
+  [class.rounded-md.bg-blue-50.dark:bg-blue-900]="isBatchMode && isSelected"
   cdkDrag
   [cdkDragData]="notebook"
+  [cdkDragDisabled]="isBatchMode"
   (cdkDragEnded)="onDragEnded($event)"
 >
-  <!-- Minimal Drag Placeholder -->
   <div *cdkDragPlaceholder class="my-1 h-8 w-full rounded bg-gray-200 dark:bg-[#3C4043] border border-gray-300 dark:border-[#5F6368] opacity-50"></div>
 
-  <div class="flex items-center justify-between gap-2 rounded px-2 py-1.5 transition-colors hover:bg-gray-50 dark:hover:bg-white/5">
-    <!-- Drag Handle on the LEFT -->
-    <div
-      class="flex cursor-move items-center justify-center text-gray-400 dark:text-[#5F6368] opacity-0 transition-opacity group-hover:opacity-100"
-      cdkDragHandle
-      [attr.aria-label]="'aria.drag' | translate"
-      [title]="'tooltips.drag' | translate"
-    >
-      <svg viewBox="0 0 24 24" class="h-4 w-4 fill-current">
-        <path
-          d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
-        />
-      </svg>
-    </div>
+  <div 
+    class="flex items-center justify-between gap-2 rounded px-2 py-1.5 transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
+    [class.cursor-pointer]="isBatchMode"
+    (click)="onRowClick($event)"
+  >
+    @if (isBatchMode) {
+      <button
+        type="button"
+        class="nle-batch-checkbox flex h-5 w-5 items-center justify-center rounded border-2 transition-colors shrink-0"
+        [class.border-blue-500]="isSelected"
+        [class.bg-blue-500]="isSelected"
+        [class.border-gray-300]="!isSelected"
+        [class.dark:border-gray-600]="!isSelected"
+        [class.dark:bg-blue-600]="isSelected"
+        (click)="onSelectionToggle($event)"
+        [attr.aria-label]="isSelected ? 'Deselect note' : 'Select note'"
+      >
+        @if (isSelected) {
+          <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 text-white fill-current">
+            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+          </svg>
+        }
+      </button>
+    } @else {
+      <div
+        class="flex cursor-move items-center justify-center text-gray-400 dark:text-[#5F6368] opacity-0 transition-opacity group-hover:opacity-100"
+        cdkDragHandle
+        aria-label="Drag"
+        title="Drag to move"
+      >
+        <svg viewBox="0 0 24 24" class="h-4 w-4 fill-current">
+          <path
+            d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"
+          />
+        </svg>
+      </div>
+    }
 
     <div class="flex min-w-0 flex-1 items-center gap-2">
-      <button type="button" class="flex-1 min-w-0 text-left" (click)="open.emit(notebook)">
+      <button type="button" class="flex-1 min-w-0 text-left" (click)="open.emit(notebook)" [disabled]="isBatchMode">
         <div class="flex items-center gap-2">
-          <!-- Material Symbol Icon -->
           <span class="material-symbols-outlined text-lg shrink-0 icon-{{ notebook.color }} dark:icon-{{ notebook.color }}-dark">
             {{ notebook.icon }}
           </span>
@@ -35,18 +58,19 @@
         </div>
       </button>
 
-      <!-- 3 Dots Menu on the RIGHT -->
-      <button
-        type="button"
-        class="flex h-7 w-7 items-center justify-center rounded text-gray-500 dark:text-[#9AA0A6] hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-700 dark:hover:text-[#E3E3E3]"
-        (click)="openMenu.emit({ notebook, x: $event.clientX, y: $event.clientY }); $event.stopPropagation()"
-        [attr.aria-label]="'aria.options' | translate"
-        [title]="'tooltips.options' | translate"
-      >
-        <svg viewBox="0 0 24 24" class="h-4 w-4 fill-current">
-          <path d="M12 7a2 2 0 110-4 2 2 0 010 4zm0 7a2 2 0 110-4 2 2 0 010 4zm0 7a2 2 0 110-4 2 2 0 010 4z" />
-        </svg>
-      </button>
+      @if (!isBatchMode) {
+        <button
+          type="button"
+          class="flex h-7 w-7 items-center justify-center rounded text-gray-500 dark:text-[#9AA0A6] hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-700 dark:hover:text-[#E3E3E3]"
+          (click)="openMenu.emit({ notebook, x: $event.clientX, y: $event.clientY }); $event.stopPropagation()"
+          aria-label="Options"
+          title="Options"
+        >
+          <svg viewBox="0 0 24 24" class="h-4 w-4 fill-current">
+            <path d="M12 7a2 2 0 110-4 2 2 0 010 4zm0 7a2 2 0 110-4 2 2 0 010 4zm0 7a2 2 0 110-4 2 2 0 010 4z" />
+          </svg>
+        </button>
+      }
     </div>
   </div>
 </div>

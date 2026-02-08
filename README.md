@@ -93,6 +93,14 @@ NotebookLM Enhancer injects a complete folder management system directly into No
 - Configurable options (images, citations, page numbers)
 - Dark mode support in exports
 
+**Batch Delete**
+- Select multiple notes at once with checkboxes
+- "Selection Mode" toggle in header
+- Click any row to toggle selection
+- Progress indicator during deletion ("Deleting 2/5...")
+- ESC key to cancel selection mode
+- Confirmation modal before deleting
+
 **Robust Architecture**
 - Chrome Extension MV3 (latest manifest version)
 - Content Scripts + Shadow DOM for complete style isolation

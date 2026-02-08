@@ -12,6 +12,7 @@
     messageTypeOpenNotebook: 'NLE_OPEN_NOTEBOOK',
     messageTypeOpenNotebookMenu: 'NLE_OPEN_NOTE_MENU',
     messageTypeDeleteNotebook: 'NLE_DELETE_NOTEBOOK',
+    messageTypeDeleteNotebooksBatch: 'NLE_DELETE_NOTEBOOKS_BATCH',
     messageTypeNativeDrop: 'NLE_NATIVE_DROP',
     messageTypeAddNote: 'NLE_ADD_NOTE',
     messageTypeExportNote: 'NLE_EXPORT_NOTE',

@@ -1,6 +1,6 @@
 import { AsyncPipe } from '@angular/common';
 import { DragDropModule, type CdkDragDrop } from '@angular/cdk/drag-drop';
-import { Component, NgZone, OnDestroy } from '@angular/core';
+import { Component, HostListener, NgZone, OnDestroy } from '@angular/core';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
 
@@ -18,6 +18,7 @@ import { TranslatePipe, TranslationService, type Language } from './i18n';
 import { FolderStructureService } from './services/folder-structure.service';
 import { ThemeService } from './services/theme.service';
 import { ModalService } from './services/modal.service';
+import { BatchSelectionService } from './services/batch-selection.service';
 
 type NotebookItem = Notebook;
 
@@ -53,6 +54,16 @@ export class AppComponent implements OnDestroy {
   // Language observable
   readonly currentLang$: Observable<Language>;
 
+  // Batch selection
+  readonly isBatchMode$: Observable<boolean>;
+  readonly selectedCount$: Observable<number>;
+  selectedKeys: Set<string> = new Set();
+  isBatchMode = false;
+
+  // Batch delete progress
+  isDeletingBatch = false;
+  batchDeleteProgress = { current: 0, total: 0 };
+
   private readonly onMessage: (event: MessageEvent) => void;
 
   // Modal state
@@ -68,7 +79,8 @@ export class AppComponent implements OnDestroy {
     private readonly folders: FolderStructureService,
     private readonly themeService: ThemeService,
     readonly modalService: ModalService,
-    readonly translationService: TranslationService
+    readonly translationService: TranslationService,
+    readonly batchSelection: BatchSelectionService
   ) {
     this.folders$ = this.folders.folders$;
     this.notebookFolderByKey$ = this.folders.notebookFolderByKey$;
@@ -80,6 +92,10 @@ export class AppComponent implements OnDestroy {
 
     // Language observable
     this.currentLang$ = this.translationService.currentLang$;
+
+    // Batch selection observables
+    this.isBatchMode$ = this.batchSelection.isBatchMode$;
+    this.selectedCount$ = this.batchSelection.selectedCount$;
 
     this.onMessage = (event: MessageEvent) => {
       // Messages come from the NotebookLM page context via the content script.
@@ -136,6 +152,17 @@ export class AppComponent implements OnDestroy {
           void this.handleNativeDrop({ key, title }, payload.x as number, payload.y as number);
         });
       }
+
+      if (data.type === 'NLE_DELETE_BATCH_COMPLETE') {
+        const payload = data.payload as { success?: boolean; deletedCount?: number; failedCount?: number };
+        this.ngZone.run(() => {
+          this.isDeletingBatch = false;
+          this.batchSelection.disableBatchMode();
+          // Re-enable observers after batch delete
+          window.parent.postMessage({ type: 'NLE_ENABLE_OBSERVERS' }, '*');
+        });
+        return;
+      }
     };
 
     window.addEventListener('message', this.onMessage);
@@ -160,6 +187,18 @@ export class AppComponent implements OnDestroy {
     this.subs.add(
       this.modalService.activeModal$.subscribe((modal) => {
         this.isModalOpen = modal !== null;
+      })
+    );
+
+    // Subscribe to batch selection state
+    this.subs.add(
+      this.batchSelection.isBatchMode$.subscribe((mode) => {
+        this.isBatchMode = mode;
+      })
+    );
+    this.subs.add(
+      this.batchSelection.selectedKeys$.subscribe((keys) => {
+        this.selectedKeys = keys;
       })
     );
     
@@ -414,6 +453,91 @@ export class AppComponent implements OnDestroy {
 
   get themeTooltip(): string {
     return this.themeService.getCurrentThemeMetadata().tooltip;
+  }
+
+  // ========== BATCH OPERATIONS ==========
+
+  /**
+   * Toggle batch selection mode
+   */
+  toggleBatchMode(): void {
+    this.batchSelection.toggleBatchMode();
+  }
+
+  /**
+   * Handle notebook selection toggle in batch mode
+   */
+  onNotebookSelectionToggle(nb: NotebookItem): void {
+    this.batchSelection.toggleSelection(nb.key);
+  }
+
+  /**
+   * Check if a notebook is selected
+   */
+  isNotebookSelected(notebook: NotebookItem): boolean {
+    return this.selectedKeys.has(notebook.key);
+  }
+
+  /**
+   * Cancel batch mode
+   */
+  cancelBatchMode(): void {
+    this.batchSelection.disableBatchMode();
+  }
+
+  /**
+   * Execute batch delete of selected notebooks
+   */
+  async executeBatchDelete(): Promise<void> {
+    const selectedKeys = this.batchSelection.getSelectedKeysArray();
+    if (selectedKeys.length === 0) return;
+
+    // Get selected notebooks with full data
+    const selectedNotebooks = this.notebooks.filter(nb => selectedKeys.includes(nb.key));
+    if (selectedNotebooks.length === 0) return;
+
+    // Show confirmation modal
+    const confirmMessage = selectedNotebooks.length === 1
+      ? `"${selectedNotebooks[0].title}"`
+      : this.translationService.translate('batchDelete.multipleMessage', { count: String(selectedNotebooks.length) });
+
+    const ok = await this.modalService.confirm(
+      this.translationService.translate('batchDelete.title'),
+      confirmMessage
+    );
+    if (!ok) return;
+
+    // Disable observers during batch delete to prevent interference
+    window.parent.postMessage({ type: 'NLE_DISABLE_OBSERVERS' }, '*');
+
+    this.isDeletingBatch = true;
+    this.batchDeleteProgress = { current: 0, total: selectedNotebooks.length };
+
+    // Send batch delete request to content script
+    window.parent.postMessage(
+      {
+        type: 'NLE_DELETE_NOTEBOOKS_BATCH',
+        payload: {
+          notebooks: selectedNotebooks.map(nb => ({
+            index: nb.index,
+            title: nb.title,
+            key: nb.key,
+          })),
+        },
+      },
+      '*'
+    );
+  }
+
+  /**
+   * Handle ESC key to exit batch mode
+   */
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscapeKey(event: KeyboardEvent): void {
+    if (this.isBatchMode) {
+      event.preventDefault();
+      this.cancelBatchMode();
+    }
   }
 
   ngOnDestroy(): void {

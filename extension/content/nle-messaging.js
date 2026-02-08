@@ -7,6 +7,7 @@
     messageTypeOpenNotebook,
     messageTypeOpenNotebookMenu,
     messageTypeDeleteNotebook,
+    messageTypeDeleteNotebooksBatch,
     messageTypeAddNote,
     selectors,
   } = NLE.constants;
@@ -199,6 +200,84 @@
     return await clickDeleteInOpenMenu();
   }
 
+  /**
+   * Batch delete notebooks with delay between each to avoid race conditions
+   * @param {Array<{index?: number; title?: string}>} notebooks
+   * @returns {Promise<{success: boolean; deletedCount: number; failedCount: number; errors?: string[]}>}
+   */
+  async function deleteNotebooksBatch(notebooks) {
+    if (!Array.isArray(notebooks) || notebooks.length === 0) {
+      return { success: false, deletedCount: 0, failedCount: 0, errors: ['No notebooks provided'] };
+    }
+
+    const result = {
+      success: true,
+      deletedCount: 0,
+      failedCount: 0,
+      errors: [],
+    };
+
+    const DELAY_MS = 400; // Delay between deletions to allow UI to settle
+
+    for (let i = 0; i < notebooks.length; i++) {
+      const notebook = notebooks[i];
+      const progressInfo = `[${i + 1}/${notebooks.length}]`;
+
+      try {
+        let ok = false;
+
+        // Try by index first (more reliable)
+        if (typeof notebook.index === 'number' && Number.isInteger(notebook.index) && notebook.index >= 0) {
+          // Adjust index for previously deleted items
+          const adjustedIndex = notebook.index - result.deletedCount;
+          if (adjustedIndex >= 0) {
+            NLE.log(`${progressInfo} Deleting notebook by index:`, notebook.title || `index ${adjustedIndex}`);
+            ok = await deleteNativeNotebookByIndex(adjustedIndex);
+          }
+        }
+
+        // Fallback to title if index fails
+        if (!ok && typeof notebook.title === 'string') {
+          NLE.log(`${progressInfo} Deleting notebook by title:`, notebook.title);
+          ok = await deleteNativeNotebookByTitle(notebook.title);
+        }
+
+        if (ok) {
+          result.deletedCount++;
+          NLE.log(`${progressInfo} Successfully deleted`);
+        } else {
+          result.failedCount++;
+          const error = `Failed to delete: ${notebook.title || `index ${notebook.index}`}`;
+          result.errors.push(error);
+          NLE.log(`${progressInfo} Failed:`, error);
+        }
+
+        // Send progress update to iframe if callback exists
+        if (NLE.onBatchDeleteProgress) {
+          NLE.onBatchDeleteProgress({
+            current: i + 1,
+            total: notebooks.length,
+            currentTitle: notebook.title || `Note ${i + 1}`,
+          });
+        }
+
+        // Delay between deletions (except for the last one)
+        if (i < notebooks.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
+        }
+      } catch (error) {
+        result.failedCount++;
+        const errorMsg = `Error deleting ${notebook.title || `index ${notebook.index}`}: ${error}`;
+        result.errors.push(errorMsg);
+        NLE.log(`${progressInfo} Error:`, errorMsg);
+      }
+    }
+
+    result.success = result.failedCount === 0;
+    NLE.log('Batch delete complete:', result);
+    return result;
+  }
+
   window.addEventListener('message', (event) => {
     // Only accept messages from our iframe.
     if (!state.frameEl?.contentWindow) return;
@@ -256,6 +335,29 @@
           ok = await deleteNativeNotebookByTitle(payload.title);
         }
         if (!ok) NLE.log('Delete failed:', payload);
+      })();
+
+      return;
+    }
+
+    // Handle batch delete notebooks request
+    if (data.type === messageTypeDeleteNotebooksBatch) {
+      const payload = /** @type {{ notebooks?: unknown }} */ (data.payload ?? {});
+      const notebooks = Array.isArray(payload.notebooks) ? payload.notebooks : [];
+
+      void (async () => {
+        const result = await deleteNotebooksBatch(notebooks);
+        
+        // Send result back to iframe
+        if (state.frameEl?.contentWindow) {
+          state.frameEl.contentWindow.postMessage(
+            {
+              type: 'NLE_DELETE_BATCH_COMPLETE',
+              payload: result,
+            },
+            '*'
+          );
+        }
       })();
 
       return;

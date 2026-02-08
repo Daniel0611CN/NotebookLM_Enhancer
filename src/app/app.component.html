@@ -1,86 +1,138 @@
 @let folderList = (folders$ | async) ?? [];
 @let keyMap = (notebookFolderByKey$ | async) ?? {};
 @let titleMap = (notebookFolderByTitle$ | async) ?? {};
+@let batchMode = isBatchMode$ | async;
+@let selectedCount = selectedCount$ | async;
 
 <div class="flex h-full flex-col p-4 text-gray-700 dark:text-[#E3E3E3]" cdkDropListGroup>
 
   <!-- Minimalist Widget Container -->
   <div class="flex flex-col  rounded-2xl bg-white dark:bg-[#22262B] shadow-lg border border-gray-200 dark:border-[#3C4043] overflow-hidden">
 
-    <!-- Header  -->
+    <!-- Header - Dynamic based on batch mode -->
     <div class="flex items-center justify-between px-4 py-3">
-      <div class="flex items-baseline gap-3">
-        <h1 class="text-base font-normal text-gray-900 dark:text-[#E8EAED]">{{ 'app.title' | translate }}</h1>
-      </div>
+      @if (!batchMode) {
+        <!-- Normal Header -->
+        <div class="flex items-baseline gap-3">
+          <h1 class="text-base font-normal text-gray-900 dark:text-[#E8EAED]">{{ 'app.title' | translate }}</h1>
+        </div>
 
-      <div class="flex items-center gap-1">
-        <!-- Language Toggle -->
-        <button
-          class="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-gray-500 dark:text-[#9AA0A6] hover:bg-gray-100 dark:hover:bg-[#3C4043] hover:text-gray-700 dark:hover:text-[#E3E3E3] transition-colors"
-          (click)="toggleLanguage()" [title]="'tooltips.language' | translate">
-          {{ (currentLang$ | async) === 'en' ? 'EN' : 'ES' }}
-        </button>
+        <div class="flex items-center gap-1">
+          <!-- Language Toggle -->
+          <button
+            class="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-gray-500 dark:text-[#9AA0A6] hover:bg-gray-100 dark:hover:bg-[#3C4043] hover:text-gray-700 dark:hover:text-[#E3E3E3] transition-colors"
+            (click)="toggleLanguage()" [title]="'tooltips.language' | translate">
+            {{ (currentLang$ | async) === 'en' ? 'EN' : 'ES' }}
+          </button>
 
-        <!-- Theme Toggle -->
-        <button
-          class="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 dark:text-[#9AA0A6] hover:bg-gray-100 dark:hover:bg-[#3C4043] hover:text-gray-700 dark:hover:text-[#E3E3E3] transition-colors"
-          (click)="toggleTheme()" [title]="'tooltips.theme' | translate">
-          @if (themeIcon === 'sun') {
-            <!-- Sun icon for light mode -->
-            <svg viewBox="0 0 24 24" class="h-5 w-5 fill-current" stroke="currentColor" stroke-width="2" fill="none">
-              <circle cx="12" cy="12" r="5" fill="currentColor"/>
-              <g stroke-linecap="round">
-              <line x1="12" y1="1" x2="12" y2="3"/>
-              <line x1="12" y1="21" x2="12" y2="23"/>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-              <line x1="1" y1="12" x2="3" y2="12"/>
-              <line x1="21" y1="12" x2="23" y2="12"/>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-              </g>
-            </svg>
-          } @else if (themeIcon === 'moon') {
-            <!-- Moon icon for dark mode -->
-            <svg viewBox="0 0 24 24" class="h-4 w-4 fill-current">
-                <path d="
-                  M21 12
-                  A9 9 0 1 1 12 3
-                  A7 7 0 1 0 21 12
-                "/>
+          <!-- Theme Toggle -->
+          <button
+            class="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 dark:text-[#9AA0A6] hover:bg-gray-100 dark:hover:bg-[#3C4043] hover:text-gray-700 dark:hover:text-[#E3E3E3] transition-colors"
+            (click)="toggleTheme()" [title]="'tooltips.theme' | translate">
+            @if (themeIcon === 'sun') {
+              <!-- Sun icon for light mode -->
+              <svg viewBox="0 0 24 24" class="h-5 w-5 fill-current" stroke="currentColor" stroke-width="2" fill="none">
+                <circle cx="12" cy="12" r="5" fill="currentColor"/>
+                <g stroke-linecap="round">
+                <line x1="12" y1="1" x2="12" y2="3"/>
+                <line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/>
+                <line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </g>
               </svg>
-          } @else {
-            <!-- Monitor icon for system mode -->
+            } @else if (themeIcon === 'moon') {
+              <!-- Moon icon for dark mode -->
+              <svg viewBox="0 0 24 24" class="h-4 w-4 fill-current">
+                  <path d="
+                    M21 12
+                    A9 9 0 1 1 12 3
+                    A7 7 0 1 0 21 12
+                  "/>
+                </svg>
+            } @else {
+              <!-- Monitor icon for system mode -->
+              <svg viewBox="0 0 24 24" class="h-5 w-5 fill-current">
+                <path d="M20 3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM20 16H4V5h16v11z"/>
+                <path d="M12 18h2v2h-2z"/>
+              </svg>
+            }
+          </button>
+
+          <!-- Add Note -->
+          <button
+            class="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 dark:text-[#9AA0A6] hover:bg-gray-100 dark:hover:bg-[#3C4043] hover:text-gray-700 dark:hover:text-[#E3E3E3] transition-colors"
+            (click)="addNote()" [title]="'tooltips.addNote' | translate">
             <svg viewBox="0 0 24 24" class="h-5 w-5 fill-current">
-              <path d="M20 3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM20 16H4V5h16v11z"/>
-              <path d="M12 18h2v2h-2z"/>
+              <path
+                d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
             </svg>
+          </button>
+
+          <!-- Batch Mode Toggle -->
+          <button
+            class="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 dark:text-[#9AA0A6] hover:bg-gray-100 dark:hover:bg-[#3C4043] hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            (click)="toggleBatchMode()" [title]="'tooltips.batchMode' | translate">
+            <svg viewBox="0 0 24 24" class="h-5 w-5 fill-current">
+              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7v-7zm4-3h2v10h-2V7zm4 6h2v4h-2v-4z"/>
+            </svg>
+          </button>
+
+          <!-- New Folder -->
+          <button
+            class="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 dark:text-[#9AA0A6] hover:bg-gray-100 dark:hover:bg-[#3C4043] hover:text-gray-700 dark:hover:text-[#E3E3E3] transition-colors"
+            (click)="createFolder()" [title]="'tooltips.newFolder' | translate">
+            <svg viewBox="0 0 24 24" class="h-5 w-5 fill-current">
+              <path
+                d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+              <circle cx="18" cy="8" r="5" fill="white" class="dark:fill-[#22262B]"/>
+              <path d="M18 6v4M16 8h4" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      } @else {
+        <!-- Batch Mode Header -->
+        <div class="flex items-center gap-2">
+          <span class="text-base font-medium text-gray-900 dark:text-[#E8EAED]">
+            {{ selectedCount || 0 }} {{ 'batchDelete.selected' | translate }}
+          </span>
+          @if (isDeletingBatch) {
+            <span class="text-xs text-gray-500 dark:text-[#9AA0A6]">
+              ({{ batchDeleteProgress.current }}/{{ batchDeleteProgress.total }})
+            </span>
           }
-        </button>
+        </div>
 
-        <!-- Add Note -->
-        <button
-          class="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 dark:text-[#9AA0A6] hover:bg-gray-100 dark:hover:bg-[#3C4043] hover:text-gray-700 dark:hover:text-[#E3E3E3] transition-colors"
-          (click)="addNote()" [title]="'tooltips.addNote' | translate">
-          <svg viewBox="0 0 24 24" class="h-5 w-5 fill-current">
-            <path
-              d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
-          </svg>
-        </button>
+        <div class="flex items-center gap-1">
+          <!-- Cancel Button -->
+          <button
+            class="flex h-8 px-3 items-center justify-center rounded-full text-sm text-gray-600 dark:text-[#9AA0A6] hover:bg-gray-100 dark:hover:bg-[#3C4043] transition-colors"
+            (click)="cancelBatchMode()">
+            {{ 'buttons.cancel' | translate }}
+          </button>
 
-        <!-- New Folder -->
-        <button
-          class="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 dark:text-[#9AA0A6] hover:bg-gray-100 dark:hover:bg-[#3C4043] hover:text-gray-700 dark:hover:text-[#E3E3E3] transition-colors"
-          (click)="createFolder()" [title]="'tooltips.newFolder' | translate">
-          <svg viewBox="0 0 24 24" class="h-5 w-5 fill-current">
-            <path
-              d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2zM4 18V6h4.17l2 2H20v10H4z" />
-            <circle cx="18" cy="8" r="5" fill="white" class="dark:fill-[#22262B]"/>
-            <path d="M18 6v4M16 8h4" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-          </svg>
-        </button>
-
-      </div>
+          <!-- Delete Selected Button -->
+          <button
+            class="flex h-8 px-3 items-center justify-center rounded-full text-sm font-medium text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            (click)="executeBatchDelete()"
+            [disabled]="(selectedCount || 0) === 0 || isDeletingBatch">
+            @if (isDeletingBatch) {
+              <svg class="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+              </svg>
+            } @else {
+              <svg viewBox="0 0 24 24" class="h-4 w-4 mr-1 fill-current">
+                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+              </svg>
+            }
+            {{ 'buttons.deleteSelected' | translate }} ({{ selectedCount || 0 }})
+          </button>
+        </div>
+      }
     </div>
 
     <!-- Divider -->
@@ -136,8 +188,11 @@
               @for (nb of unsortedNotebooks; track nb.key) {
                 <app-notebook-item
                   [notebook]="nb"
+                  [isBatchMode]="batchMode || false"
+                  [isSelected]="isNotebookSelected(nb)"
                   (open)="openNotebook($event)"
                   (openMenu)="openNotebookMenu($event)"
+                  (selectionToggle)="onNotebookSelectionToggle($event)"
                 />
               }
             </div>
@@ -148,11 +203,15 @@
       <!-- Folder Tree -->
       <div class="px-1 py-2">
         <app-folder-tree [tree]="folderTree" [folders]="folderList" [notebooksByFolderId]="notebooksByFolderId"
-          [notebookFolderByKey]="keyMap" [notebookFolderByTitle]="titleMap" (toggleFolder)="toggleFolder($event)"
+          [notebookFolderByKey]="keyMap" [notebookFolderByTitle]="titleMap"
+          [isBatchMode]="batchMode || false"
+          [selectedKeys]="selectedKeys"
+          (toggleFolder)="toggleFolder($event)"
           (createSubfolder)="createSubfolder($event)" (renameFolder)="renameFolder($event)"
           (deleteFolder)="deleteFolder($event)" (openNotebook)="openNotebook($event)"
           (openNotebookMenu)="openNotebookMenu($event)"
-          (droppedNotebook)="onNotebookDropped($event)" />
+          (droppedNotebook)="onNotebookDropped($event)"
+          (notebookSelectionToggle)="onNotebookSelectionToggle($event)" />
       </div>
     </div>
   </div>

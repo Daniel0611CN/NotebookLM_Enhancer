@@ -23,6 +23,8 @@ export class FolderTreeComponent {
   @Input() notebooksByFolderId: Record<string, NotebookItem[]> = {};
   @Input() notebookFolderByKey: Record<string, string | null> = {};
   @Input() notebookFolderByTitle: Record<string, string | null> = {};
+  @Input() isBatchMode = false;
+  @Input() selectedKeys: Set<string> = new Set();
 
   @Output() toggleFolder = new EventEmitter<Folder>();
   @Output() createSubfolder = new EventEmitter<Folder>();
@@ -32,4 +34,9 @@ export class FolderTreeComponent {
   @Output() openNotebook = new EventEmitter<NotebookItem>();
   @Output() openNotebookMenu = new EventEmitter<NotebookMenuRequest>();
   @Output() droppedNotebook = new EventEmitter<CdkDragDrop<NotebookDropListData, NotebookDropListData, NotebookItem>>();
+  @Output() notebookSelectionToggle = new EventEmitter<NotebookItem>();
+
+  isNotebookSelected(notebook: NotebookItem): boolean {
+    return this.selectedKeys.has(notebook.key);
+  }
 }
