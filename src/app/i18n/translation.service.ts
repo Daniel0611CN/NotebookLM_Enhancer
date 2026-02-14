@@ -4,14 +4,14 @@ import type { Language, Translations } from './translation.types';
 
 @Injectable({ providedIn: 'root' })
 export class TranslationService {
-  private currentLang = new BehaviorSubject<Language>('en');
+  private currentLang = new BehaviorSubject<Language>('es');
   private translations: Translations | null = null;
 
   readonly currentLang$: Observable<Language> = this.currentLang.asObservable();
 
   constructor() {
     // Load default language on init
-    void this.loadLanguage('en');
+    void this.loadLanguage('es');
   }
 
   async loadLanguage(lang: Language): Promise<void> {
@@ -25,8 +25,8 @@ export class TranslationService {
     } catch (error) {
       console.error(`Failed to load language: ${lang}`, error);
       // Fallback to English
-      if (lang !== 'en') {
-        await this.loadLanguage('en');
+      if (lang !== 'es') {
+        await this.loadLanguage('es');
       }
     }
   }
